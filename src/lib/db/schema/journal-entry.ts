@@ -1,5 +1,12 @@
 import { relations } from 'drizzle-orm'
-import { boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  index,
+  integer,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core'
 
 import { user } from './auth'
 import { movie } from './movie'
@@ -10,7 +17,9 @@ import { movie } from './movie'
 export const journalEntry = pgTable(
   'journal_entry',
   {
-    id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
