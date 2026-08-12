@@ -1,8 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute } from '@tanstack/react-router'
 import { Film } from 'lucide-react'
 
 import { getShowcaseFilms } from '#/lib/tmdb/showcase'
 import { cn } from '#/lib/utils'
+import { Tear } from '#/components/tear-divider'
+import { TicketLink } from '#/components/ticket-button'
 
 export const Route = createFileRoute('/')({
   loader: () => getShowcaseFilms(),
@@ -33,26 +35,6 @@ function Stars({ rating }: { rating: number }) {
   )
 }
 
-function TicketButton({ children }: { children: React.ReactNode }) {
-  return (
-    <a
-      href="#"
-      className="bg-lm-amber before:bg-lm-ink after:bg-lm-ink relative inline-flex items-center gap-2.5 rounded-md px-[34px] py-4 text-[15px] font-bold tracking-[0.02em] text-[#1c1408] no-underline shadow-[0_8px_24px_-8px_rgba(242,169,59,0.5)] outline-none transition-[transform,box-shadow] duration-150 before:absolute before:top-1/2 before:-left-2 before:size-4 before:-translate-y-1/2 before:rounded-full before:content-[''] after:absolute after:top-1/2 after:-right-2 after:size-4 after:-translate-y-1/2 after:rounded-full after:content-[''] hover:-translate-y-px hover:shadow-[0_12px_28px_-8px_rgba(242,169,59,0.6)] active:translate-y-0 focus-visible:outline-lm-ink focus-visible:outline-2 focus-visible:outline-offset-2"
-    >
-      {children}
-    </a>
-  )
-}
-
-function Tear() {
-  return (
-    <div
-      aria-hidden="true"
-      className="mx-auto h-px max-w-[1120px] [background-image:repeating-linear-gradient(to_right,var(--color-lm-line)_0_7px,transparent_7px_16px)]"
-    />
-  )
-}
-
 function Home() {
   const films = Route.useLoaderData()
 
@@ -62,12 +44,12 @@ function Home() {
         <div className="text-[15px] font-extrabold tracking-[0.06em] uppercase max-sm:text-[13px]">
           Movie <span className="text-lm-amber">Journal</span>
         </div>
-        <a
-          href="#"
+        <Link
+          to="/sign-in"
           className="border-lm-line text-lm-paper hover:border-lm-amber hover:bg-lm-amber/10 focus-visible:outline-lm-amber rounded-full border px-4 py-2 text-sm no-underline outline-none transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           Sign in
-        </a>
+        </Link>
       </header>
 
       <div
@@ -105,7 +87,7 @@ function Home() {
           Log every film you watch, rate it, and write down what you thought — a
           running record of your moviegoing life, kept in one place.
         </p>
-        <TicketButton>Start your journal</TicketButton>
+        <TicketLink to="/register">Start your journal</TicketLink>
         <div className="font-lm-mono text-lm-mist mt-4 text-[12.5px] tracking-[0.04em]">
           NO CARD REQUIRED · TAKES 30 SECONDS
         </div>
@@ -191,7 +173,7 @@ function Home() {
         <h3 className="mb-5 text-[clamp(1.6rem,3.4vw,2.4rem)] font-extrabold">
           Your next stub is waiting.
         </h3>
-        <TicketButton>Start your journal</TicketButton>
+        <TicketLink to="/register">Start your journal</TicketLink>
       </section>
 
       <footer className="px-6 pt-7 pb-10 text-center text-[12.5px] text-[#565870]">

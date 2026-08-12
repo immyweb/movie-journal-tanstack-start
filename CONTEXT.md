@@ -22,3 +22,11 @@ _Avoid_: The API, the movie API
 
 **User**:
 An account holder, authenticated via Better Auth. Owns zero or more JournalEntries.
+
+**Register**:
+The action of creating a new User account by submitting a name, email, and password.
+_Avoid_: Sign up, Create account
+
+**Sign In**:
+The action of authenticating as an existing User with email and password to start a session.
+_Avoid_: Log in, Login
