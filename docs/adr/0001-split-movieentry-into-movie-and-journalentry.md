@@ -1,0 +1,3 @@
+# Split MovieEntry into Movie and JournalEntry
+
+`docs/SYSTEM-DESIGN.md` originally modeled a single `MovieEntry` mixing immutable TMDB catalog data (title, posterImg, releaseDate, theMovieDbId) with mutable per-user journal data (dateWatched, rating, review, like) — but its own edit endpoint only ever touches the mutable fields, confirming the two don't actually change together. We split them into `Movie` (an immutable cached catalog snapshot) and `JournalEntry` (the mutable per-user record, referencing a Movie), and allow multiple JournalEntries per Movie to support rewatches. This is a deliberate deviation from the data model documented in SYSTEM-DESIGN.md.
