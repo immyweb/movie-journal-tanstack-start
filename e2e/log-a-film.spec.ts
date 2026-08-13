@@ -1,14 +1,7 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-// Authenticated routes SSR the shell once then hydrate (ADR 0004) — a plain
-// `goto` leaves a window where the DOM is present but not yet interactive,
-// so a fast Playwright click can hit native form submission before React
-// attaches its handlers. Wait for hydration to settle first.
-async function gotoAndHydrate(page: Page, url: string) {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
-}
+import { gotoAndHydrate, registerNewUser } from './support'
 
 // Critical CRUD journey named in ADR 0006 — register, log a film (with a
 // rewatch), verify it lands in the journal, with axe-core folded in for the
@@ -19,12 +12,7 @@ test('a signed-in user can log a film, including a rewatch', async ({
   const email = `log-a-film-${Date.now()}@example.com`
 
   await test.step('register a new account', async () => {
-    await gotoAndHydrate(page, '/register')
-    await page.getByLabel('Name').fill('Stub Tester')
-    await page.getByLabel('Email').fill(email)
-    await page.getByLabel('Password').fill('correct-horse-battery')
-    await page.getByRole('button', { name: 'Register' }).click()
-    await expect(page).toHaveURL('/journal')
+    await registerNewUser(page, { name: 'Stub Tester', email })
   })
 
   await test.step('search TMDB and select a film', async () => {
@@ -54,7 +42,7 @@ test('a signed-in user can log a film, including a rewatch', async ({
   await test.step('the entry appears in the journal', async () => {
     const stub = page.getByRole('article').filter({ hasText: 'The Matrix' })
     await expect(stub).toContainText('01 AUG 2026')
-    await expect(stub).toContainText('Liked')
+    await expect(stub.getByLabel('Liked')).toBeVisible()
     await expect(stub).toContainText('Still thinking about the bullet time.')
   })
 

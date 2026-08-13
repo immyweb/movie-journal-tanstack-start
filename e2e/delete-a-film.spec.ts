@@ -1,23 +1,7 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
-// Authenticated routes SSR the shell once then hydrate (ADR 0004) — a plain
-// `goto` leaves a window where the DOM is present but not yet interactive,
-// so a fast Playwright click can hit native form submission before React
-// attaches its handlers. Wait for hydration to settle first.
-async function gotoAndHydrate(page: Page, url: string) {
-  await page.goto(url)
-  await page.waitForLoadState('networkidle')
-}
-
-async function logAFilm(page: Page, title: string, buttonName: string) {
-  await gotoAndHydrate(page, '/journal/new')
-  await page.getByLabel('Search TMDB').fill(title)
-  await page.getByRole('button', { name: buttonName, exact: true }).click()
-  await page.locator('#dateWatched').fill('2026-08-01')
-  await page.getByRole('button', { name: 'Log this watch' }).click()
-  await expect(page).toHaveURL('/journal')
-}
+import { logAFilm, registerNewUser } from './support'
 
 // Critical CRUD journey named in ADR 0006 — register, log a film, delete it
 // via the edit form's warning-and-confirm step (ADR 0010), and verify it's
@@ -28,16 +12,14 @@ test('a signed-in user can delete a film after confirming a warning', async ({
   const email = `delete-a-film-${Date.now()}@example.com`
 
   await test.step('register a new account', async () => {
-    await gotoAndHydrate(page, '/register')
-    await page.getByLabel('Name').fill('Delete Tester')
-    await page.getByLabel('Email').fill(email)
-    await page.getByLabel('Password').fill('correct-horse-battery')
-    await page.getByRole('button', { name: 'Register' }).click()
-    await expect(page).toHaveURL('/journal')
+    await registerNewUser(page, { name: 'Delete Tester', email })
   })
 
   await test.step('log a film to delete', async () => {
-    await logAFilm(page, 'The Matrix', 'The Matrix, 1999')
+    await logAFilm(page, {
+      title: 'The Matrix',
+      buttonName: 'The Matrix, 1999',
+    })
   })
 
   await test.step('open the entry and go to edit', async () => {
