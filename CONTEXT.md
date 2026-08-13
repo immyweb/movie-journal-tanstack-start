@@ -42,3 +42,7 @@ _Avoid_: Rewatch count, Times watched
 **Film detail page**:
 A page showing a single JournalEntry in full: its Movie's cached summary plus TMDB detail fields fetched live (director, cast, genre, language, runtime), the entry's own dateWatched, rating, review, and like status, and a read-only Watch count for context. Scoped to one JournalEntry, not to all of a User's watches of a Movie — the entry point for editing that entry.
 _Avoid_: Movie detail page, Film page
+
+**Edit a film**:
+The action of updating an existing JournalEntry's dateWatched, rating, review, and like status. Does not allow reassigning which Movie the entry points to — that's fixed at Log a film time. Reached from the Film detail page.
+_Avoid_: Edit a movie, Edit entry, Update entry

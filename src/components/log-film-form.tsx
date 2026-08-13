@@ -25,7 +25,7 @@ type FilmSummary = {
 export type LogFilmFormProps = {
   movie: FilmSummary
   defaultValues: LogFilmFormInput
-  watchCount?: number | null
+  watchCountNotice?: React.ReactNode
   onCancel?: () => void
   cancelLabel?: string
   submitLabel: string
@@ -36,10 +36,13 @@ export type LogFilmFormProps = {
 // Presentational: fetching watch counts and deciding what a submit error
 // means (e.g. logFilm's TMDB-outage message) are call-site concerns, so this
 // form only renders fields and reports whatever error message it's given.
+// The watch-count notice follows the same rule — the create flow's "this
+// will add a rewatch" warning and the edit flow's lack of any notice at all
+// are both call-site decisions, not this component's to make.
 export function LogFilmForm({
   movie,
   defaultValues,
-  watchCount,
+  watchCountNotice,
   onCancel,
   cancelLabel = 'Change film',
   submitLabel,
@@ -107,13 +110,12 @@ export function LogFilmForm({
         </div>
       </div>
 
-      {watchCount != null && watchCount > 0 && (
+      {watchCountNotice && (
         <p
           data-testid="watch-count-notice"
           className="border-lm-line bg-lm-ink text-lm-mist mb-6 rounded-md border px-3 py-2 text-sm"
         >
-          You&rsquo;ve logged this {watchCount} time
-          {watchCount === 1 ? '' : 's'} before — this will add a rewatch.
+          {watchCountNotice}
         </p>
       )}
 

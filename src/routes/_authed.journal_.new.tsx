@@ -231,7 +231,14 @@ function NewEntryForm({
         review: null,
         like: false,
       }}
-      watchCount={watchCount}
+      watchCountNotice={
+        watchCount != null && watchCount > 0 ? (
+          <>
+            You&rsquo;ve logged this {watchCount} time
+            {watchCount === 1 ? '' : 's'} before — this will add a rewatch.
+          </>
+        ) : undefined
+      }
       onCancel={onBack}
       cancelLabel="Change film"
       submitLabel="Log this watch"
