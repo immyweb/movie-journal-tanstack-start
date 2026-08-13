@@ -46,3 +46,7 @@ _Avoid_: Movie detail page, Film page
 **Edit a film**:
 The action of updating an existing JournalEntry's dateWatched, rating, review, and like status. Does not allow reassigning which Movie the entry points to — that's fixed at Log a film time. Reached from the Film detail page.
 _Avoid_: Edit a movie, Edit entry, Update entry
+
+**Delete a film**:
+The action of permanently removing a JournalEntry, including its rating, review, and like status. Does not remove the underlying Movie cache row (ADR 0010). Reached from the Edit a film form, behind a warning-and-confirm step.
+_Avoid_: Delete a movie, Delete entry, Remove entry

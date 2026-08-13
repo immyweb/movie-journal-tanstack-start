@@ -1,0 +1,3 @@
+# Delete a film leaves the Movie cache row in place
+
+Deleting a JournalEntry only removes that row — it never touches the `Movie` row it references, even when it was the last JournalEntry pointing at that Movie. The alternative (cascading the delete to an now-unreferenced Movie) would keep the cache tidy, but ADR 0005 already treats Movie purely as a cache of TMDB summary fields keyed by tmdbId: an orphaned row costs nothing but a little storage, and if the user logs the same film again later it's a free cache hit instead of a re-fetch. Cleaning up orphans later, if it ever matters, is a straightforward addition; a reader who expected "delete" to mean "gone from every table" should know this was a deliberate read of Movie's cache semantics, not an oversight.
