@@ -1,10 +1,10 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { Film } from 'lucide-react'
 
 import { getShowcaseFilms } from '#/lib/tmdb/showcase'
-import { cn } from '#/lib/utils'
 import { Tear } from '#/components/tear-divider'
 import { TicketLink } from '#/components/ticket-button'
+import { MarqueeBulbs } from '#/components/marquee-bulbs'
+import { MovieStub } from '#/components/movie-stub'
 
 export const Route = createFileRoute('/')({
   loader: () => getShowcaseFilms(),
@@ -23,18 +23,6 @@ export const Route = createFileRoute('/')({
   component: Home,
 })
 
-function Stars({ rating }: { rating: number }) {
-  return (
-    <span
-      className="text-lm-amber text-sm tracking-[2px]"
-      aria-label={`${rating} out of 5 stars`}
-    >
-      {'★'.repeat(rating)}
-      <span className="text-[#4a4b5c]">{'★'.repeat(5 - rating)}</span>
-    </span>
-  )
-}
-
 function Home() {
   const films = Route.useLoaderData()
 
@@ -52,26 +40,7 @@ function Home() {
         </Link>
       </header>
 
-      <div
-        className="flex justify-center gap-3.5 pt-2 pb-1.5"
-        aria-hidden="true"
-      >
-        {Array.from({ length: 11 }).map((_, i) => {
-          const isRed = (i + 1) % 3 === 0
-          return (
-            <span
-              key={i}
-              style={{ animationDelay: `${(i % 5) * 0.5}s` }}
-              className={cn(
-                'motion-safe:animate-lm-flicker size-1.5 rounded-full',
-                isRed
-                  ? 'bg-lm-red shadow-[0_0_6px_2px_rgba(197,64,90,0.5)]'
-                  : 'bg-lm-amber shadow-[0_0_6px_2px_rgba(242,169,59,0.55)]',
-              )}
-            />
-          )
-        })}
-      </div>
+      <MarqueeBulbs />
 
       <section className="px-6 pt-6 pb-16 text-center">
         <h1 className="mb-[22px] text-[clamp(2.4rem,6vw,4.6rem)] leading-[1.02] font-black tracking-[-0.01em] text-balance uppercase">
@@ -112,57 +81,16 @@ function Home() {
 
         <div className="mx-auto grid max-w-[1120px] grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[22px]">
           {films.map((film) => (
-            <article
-              className="border-lm-line bg-lm-surface relative flex flex-row items-stretch overflow-hidden rounded-xl border"
+            <MovieStub
               key={film.tmdbId}
-            >
-              <div className="bg-lm-surface after:[background-image:linear-gradient(to_right,transparent_65%,var(--color-lm-surface)_100%)] relative w-[104px] shrink-0 after:absolute after:inset-0 after:content-['']">
-                {film.posterUrl ? (
-                  <img
-                    src={film.posterUrl}
-                    alt={`${film.title} poster`}
-                    className="block h-full w-full object-cover [filter:saturate(1.05)_contrast(1.03)]"
-                  />
-                ) : (
-                  <div className="text-lm-mist flex h-full w-full items-center justify-center">
-                    <Film aria-hidden="true" size={28} />
-                  </div>
-                )}
-              </div>
-              <div
-                aria-hidden="true"
-                className="border-lm-line before:bg-lm-ink after:bg-lm-ink relative my-3.5 w-0 shrink-0 border-l-2 border-dashed before:absolute before:-left-2 before:top-[-8px] before:size-4 before:rounded-full before:content-[''] after:absolute after:-left-2 after:bottom-[-8px] after:size-4 after:rounded-full after:content-['']"
-              />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <div className="flex flex-col gap-2 px-[18px] pt-4 pb-2.5">
-                  <div className="text-[17px] leading-[1.25] font-extrabold">
-                    {film.title}
-                  </div>
-                  <div className="text-lm-mist text-[13px]">
-                    {film.year} · {film.country}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between gap-2 px-[18px] pb-2.5">
-                  <Stars rating={film.rating} />
-                  <span
-                    className={cn(
-                      'rounded-full px-[9px] py-1 text-xs font-bold tracking-[0.05em]',
-                      film.liked
-                        ? 'bg-lm-red/16 text-[#e77b90]'
-                        : 'bg-lm-mist/14 text-lm-mist',
-                    )}
-                  >
-                    {film.liked ? 'Liked' : 'Not liked'}
-                  </span>
-                </div>
-                <p className="text-lm-mist px-[18px] pb-[18px] text-[13.5px] leading-[1.5] italic">
-                  &ldquo;{film.review}&rdquo;
-                </p>
-                <div className="font-lm-mono mt-auto px-[18px] pb-4 text-[11.5px] tracking-[0.04em] text-[#5f6178]">
-                  WATCHED {film.dateWatched.toUpperCase()}
-                </div>
-              </div>
-            </article>
+              title={film.title}
+              subtitle={`${film.year} · ${film.country}`}
+              posterUrl={film.posterUrl}
+              rating={film.rating}
+              liked={film.liked}
+              review={film.review}
+              dateWatchedLabel={film.dateWatched.toUpperCase()}
+            />
           ))}
         </div>
       </section>
