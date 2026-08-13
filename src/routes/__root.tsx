@@ -29,6 +29,15 @@ export const Route = createRootRoute({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  // Component tests render through the real router (ADR-0011) but mount into
+  // a container inside an existing jsdom document — rendering another
+  // <html>/<head>/<body> shell (with its asset links and devtools) there is
+  // invalid nesting and pulls in bundle-relative assets that don't exist
+  // outside a real build. Tests only care about the route content itself.
+  if (import.meta.env.MODE === 'test') {
+    return children
+  }
+
   return (
     <html lang="en">
       <head>
