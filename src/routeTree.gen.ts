@@ -14,8 +14,10 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthedJournalRouteImport } from './routes/_authed.journal'
+import { Route as AuthedJournalEntryIdRouteImport } from './routes/_authed.journal_.$entryId'
 import { Route as AuthedJournalNewRouteImport } from './routes/_authed.journal_.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthedJournalEntryIdEditRouteImport } from './routes/_authed.journal_.$entryId_.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -41,6 +43,11 @@ const AuthedJournalRoute = AuthedJournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedJournalEntryIdRoute = AuthedJournalEntryIdRouteImport.update({
+  id: '/journal_/$entryId',
+  path: '/journal/$entryId',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedJournalNewRoute = AuthedJournalNewRouteImport.update({
   id: '/journal_/new',
   path: '/journal/new',
@@ -51,22 +58,32 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedJournalEntryIdEditRoute =
+  AuthedJournalEntryIdEditRouteImport.update({
+    id: '/journal_/$entryId_/edit',
+    path: '/journal/$entryId/edit',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/journal': typeof AuthedJournalRoute
+  '/journal/$entryId': typeof AuthedJournalEntryIdRoute
   '/journal/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/journal/$entryId/edit': typeof AuthedJournalEntryIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/journal': typeof AuthedJournalRoute
+  '/journal/$entryId': typeof AuthedJournalEntryIdRoute
   '/journal/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/journal/$entryId/edit': typeof AuthedJournalEntryIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -75,16 +92,32 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/_authed/journal': typeof AuthedJournalRoute
+  '/_authed/journal_/$entryId': typeof AuthedJournalEntryIdRoute
   '/_authed/journal_/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_authed/journal_/$entryId_/edit': typeof AuthedJournalEntryIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/register' | '/sign-in' | '/journal' | '/journal/new' | '/api/auth/$'
+    | '/'
+    | '/register'
+    | '/sign-in'
+    | '/journal'
+    | '/journal/$entryId'
+    | '/journal/new'
+    | '/api/auth/$'
+    | '/journal/$entryId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/register' | '/sign-in' | '/journal' | '/journal/new' | '/api/auth/$'
+    | '/'
+    | '/register'
+    | '/sign-in'
+    | '/journal'
+    | '/journal/$entryId'
+    | '/journal/new'
+    | '/api/auth/$'
+    | '/journal/$entryId/edit'
   id:
     | '__root__'
     | '/'
@@ -92,8 +125,10 @@ export interface FileRouteTypes {
     | '/register'
     | '/sign-in'
     | '/_authed/journal'
+    | '/_authed/journal_/$entryId'
     | '/_authed/journal_/new'
     | '/api/auth/$'
+    | '/_authed/journal_/$entryId_/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -141,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedJournalRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/journal_/$entryId': {
+      id: '/_authed/journal_/$entryId'
+      path: '/journal/$entryId'
+      fullPath: '/journal/$entryId'
+      preLoaderRoute: typeof AuthedJournalEntryIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/journal_/new': {
       id: '/_authed/journal_/new'
       path: '/journal/new'
@@ -155,17 +197,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/journal_/$entryId_/edit': {
+      id: '/_authed/journal_/$entryId_/edit'
+      path: '/journal/$entryId/edit'
+      fullPath: '/journal/$entryId/edit'
+      preLoaderRoute: typeof AuthedJournalEntryIdEditRouteImport
+      parentRoute: typeof AuthedRoute
+    }
   }
 }
 
 interface AuthedRouteChildren {
   AuthedJournalRoute: typeof AuthedJournalRoute
+  AuthedJournalEntryIdRoute: typeof AuthedJournalEntryIdRoute
   AuthedJournalNewRoute: typeof AuthedJournalNewRoute
+  AuthedJournalEntryIdEditRoute: typeof AuthedJournalEntryIdEditRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedJournalRoute: AuthedJournalRoute,
+  AuthedJournalEntryIdRoute: AuthedJournalEntryIdRoute,
   AuthedJournalNewRoute: AuthedJournalNewRoute,
+  AuthedJournalEntryIdEditRoute: AuthedJournalEntryIdEditRoute,
 }
 
 const AuthedRouteWithChildren =

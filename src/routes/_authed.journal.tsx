@@ -1,11 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Ticket } from 'lucide-react'
 
 import { getJournalEntries } from '#/lib/journal/entries'
 import { formatReleaseYear } from '#/lib/format-release-year'
+import { toDate, formatDateWatched } from '#/lib/format-date-watched'
 import { Tear } from '#/components/tear-divider'
 import { TicketLink } from '#/components/ticket-button'
 import { MovieStub } from '#/components/movie-stub'
+import { EmptyStateCard } from '#/components/empty-state-card'
 
 export const Route = createFileRoute('/_authed/journal')({
   loader: () => getJournalEntries(),
@@ -14,24 +16,6 @@ export const Route = createFileRoute('/_authed/journal')({
   }),
   component: JournalPage,
 })
-
-function toDate(value: Date | string) {
-  return value instanceof Date ? value : new Date(value)
-}
-
-function formatDateWatched(value: Date | string) {
-  // dateWatched is stored as a UTC-anchored calendar date (see logFilm) —
-  // format in UTC too, so the date shown always matches what was picked,
-  // regardless of the viewer's local timezone.
-  return new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  })
-    .format(toDate(value))
-    .toUpperCase()
-}
 
 // Zero-padded, like a box-office ticket-machine counter.
 function counter(value: number) {
@@ -135,34 +119,41 @@ function JournalPage() {
 
           <div className="mx-auto grid max-w-[1120px] grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[22px]">
             {entries.map((entry) => (
-              <MovieStub
+              <Link
                 key={entry.id}
-                title={entry.movie.title}
-                subtitle={formatReleaseYear(entry.movie.releaseDate)}
-                posterUrl={entry.movie.posterImg}
-                rating={entry.rating}
-                liked={entry.like}
-                review={entry.review}
-                dateWatchedLabel={formatDateWatched(entry.dateWatched)}
-              />
+                to="/journal/$entryId"
+                params={{ entryId: entry.id }}
+                className="focus-visible:outline-lm-amber rounded-xl outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                <MovieStub
+                  title={entry.movie.title}
+                  subtitle={formatReleaseYear(entry.movie.releaseDate)}
+                  posterUrl={entry.movie.posterImg}
+                  rating={entry.rating}
+                  liked={entry.like}
+                  review={entry.review}
+                  dateWatchedLabel={formatDateWatched(entry.dateWatched)}
+                />
+              </Link>
             ))}
           </div>
         </section>
       ) : (
         <section className="px-6 pt-[52px] pb-16">
-          <div className="border-lm-line bg-lm-surface/40 mx-auto flex max-w-[560px] flex-col items-center gap-4 rounded-xl border-2 border-dashed px-8 py-14 text-center">
-            <span className="border-lm-amber/40 text-lm-amber flex size-12 items-center justify-center rounded-full border-2">
-              <Ticket aria-hidden="true" size={22} />
-            </span>
-            <h2 className="text-[1.3rem] font-extrabold">No stubs yet</h2>
-            <p className="text-lm-mist max-w-[360px] text-[14.5px] leading-[1.6]">
-              Log the first film you watch and it&rsquo;ll show up here, stub
-              and all.
-            </p>
-            <TicketLink to="/journal/new" className="mt-2">
-              Log your first watch
-            </TicketLink>
-          </div>
+          <EmptyStateCard
+            icon={Ticket}
+            heading={
+              <h2 className="text-[1.3rem] font-extrabold">No stubs yet</h2>
+            }
+            action={
+              <TicketLink to="/journal/new" className="mt-2">
+                Log your first watch
+              </TicketLink>
+            }
+          >
+            Log the first film you watch and it&rsquo;ll show up here, stub and
+            all.
+          </EmptyStateCard>
         </section>
       )}
     </>
