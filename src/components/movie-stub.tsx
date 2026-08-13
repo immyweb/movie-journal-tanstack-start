@@ -63,7 +63,7 @@ export function MovieStub({
             &ldquo;{review}&rdquo;
           </p>
         )}
-        <div className="font-lm-mono mt-auto px-[18px] pb-4 text-[11.5px] tracking-[0.04em] text-[#5f6178]">
+        <div className="font-lm-mono text-lm-mist mt-auto px-[18px] pb-4 text-[11.5px] tracking-[0.04em]">
           WATCHED {dateWatchedLabel}
         </div>
       </div>

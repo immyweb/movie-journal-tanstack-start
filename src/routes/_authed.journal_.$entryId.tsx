@@ -114,7 +114,7 @@ function EntryDetailPage() {
               )}
             </div>
 
-            <div className="font-lm-mono text-[11.5px] tracking-[0.04em] text-[#5f6178]">
+            <div className="font-lm-mono text-lm-mist text-[11.5px] tracking-[0.04em]">
               WATCHED {formatDateWatched(entry.dateWatched)}
             </div>
             {watchCount > 1 && (

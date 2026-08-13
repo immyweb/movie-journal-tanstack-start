@@ -161,7 +161,6 @@ export function LogFilmForm({
                 type="button"
                 role="switch"
                 aria-checked={field.value}
-                aria-label="Liked it?"
                 onClick={() => field.onChange(!field.value)}
                 className={cn(
                   'cursor-pointer rounded-full px-[14px] py-2 text-xs font-bold tracking-[0.05em]',
