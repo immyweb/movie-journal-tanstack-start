@@ -20,7 +20,7 @@ export function RatingInput({
             aria-checked={value === star}
             aria-label={`${star} star${star === 1 ? '' : 's'}`}
             onClick={() => onChange(star)}
-            className="focus-visible:outline-lm-amber rounded text-2xl leading-none outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+            className="focus-visible:outline-lm-amber cursor-pointer rounded text-2xl leading-none outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             <span
               className={cn(
@@ -39,7 +39,7 @@ export function RatingInput({
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="text-lm-mist font-lm-mono text-xs tracking-[0.08em] uppercase underline underline-offset-4"
+          className="text-lm-mist font-lm-mono cursor-pointer text-xs tracking-[0.08em] uppercase underline underline-offset-4"
         >
           Clear
         </button>

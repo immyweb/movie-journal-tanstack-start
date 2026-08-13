@@ -144,7 +144,7 @@ function NewEntryPage() {
                     type="button"
                     aria-label={`${result.title}, ${formatReleaseYear(result.releaseDate)}`}
                     onClick={() => setSelected(result)}
-                    className="border-lm-line bg-lm-surface hover:border-lm-amber focus-visible:outline-lm-amber flex flex-col overflow-hidden rounded-lg border text-left outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="border-lm-line bg-lm-surface hover:border-lm-amber focus-visible:outline-lm-amber flex cursor-pointer flex-col overflow-hidden rounded-lg border text-left outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
                     <div className="bg-lm-surface aspect-[2/3] w-full">
                       {result.posterUrl ? (
@@ -274,7 +274,7 @@ function LogFilmForm({
           <button
             type="button"
             onClick={onBack}
-            className="text-lm-amber font-lm-mono mt-2 text-xs tracking-[0.08em] uppercase underline underline-offset-4"
+            className="text-lm-amber font-lm-mono mt-2 cursor-pointer text-xs tracking-[0.08em] uppercase underline underline-offset-4"
           >
             Change film
           </button>
@@ -336,7 +336,7 @@ function LogFilmForm({
                 aria-label="Liked it?"
                 onClick={() => field.onChange(!field.value)}
                 className={cn(
-                  'rounded-full px-[14px] py-2 text-xs font-bold tracking-[0.05em]',
+                  'cursor-pointer rounded-full px-[14px] py-2 text-xs font-bold tracking-[0.05em]',
                   field.value
                     ? 'bg-lm-red/16 text-[#e77b90]'
                     : // lm-mist text fails AA (4.27:1) against this pill's
