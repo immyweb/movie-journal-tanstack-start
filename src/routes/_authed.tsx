@@ -25,8 +25,10 @@ export const Route = createFileRoute('/_authed')({
 function AuthedLayout() {
   return (
     <div className="bg-lm-ink font-lm-sans text-lm-paper min-h-screen antialiased">
-      <SiteHeader homeTo="/journal" action={<SignOutButton />} />
-      <MarqueeBulbs />
+      <div className="relative z-20">
+        <SiteHeader homeTo="/journal" action={<SignOutButton />} />
+        <MarqueeBulbs />
+      </div>
       <main>
         <Outlet />
       </main>

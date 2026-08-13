@@ -13,19 +13,21 @@ export function SiteHeader({
   action?: React.ReactNode
 }) {
   return (
-    <header
-      className={cn(
-        'mx-auto flex w-full max-w-[1120px] items-center px-6 py-[26px] max-sm:px-5',
-        action ? 'justify-between' : 'justify-center',
-      )}
-    >
-      <Link
-        to={homeTo}
-        className="text-[15px] font-extrabold tracking-[0.06em] uppercase no-underline max-sm:text-[13px]"
+    <header className="bg-lm-ink/55 border-lm-line/50 border-b backdrop-blur-md backdrop-saturate-150">
+      <div
+        className={cn(
+          'mx-auto flex w-full max-w-[1120px] items-center px-6 py-[26px] max-sm:px-5',
+          action ? 'justify-between' : 'justify-center',
+        )}
       >
-        Movie <span className="text-lm-amber">Journal</span>
-      </Link>
-      {action}
+        <Link
+          to={homeTo}
+          className="text-[15px] font-extrabold tracking-[0.06em] uppercase no-underline max-sm:text-[13px]"
+        >
+          Movie <span className="text-lm-amber">Journal</span>
+        </Link>
+        {action}
+      </div>
     </header>
   )
 }

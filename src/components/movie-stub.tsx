@@ -1,6 +1,5 @@
-import { Film } from 'lucide-react'
+import { Film, Heart } from 'lucide-react'
 
-import { cn } from '#/lib/utils'
 import { Stars } from '#/components/stars'
 
 // The torn admission-ticket card — one per watched film. Shared between the
@@ -23,7 +22,7 @@ export function MovieStub({
   dateWatchedLabel: string
 }) {
   return (
-    <article className="border-lm-line bg-lm-surface relative flex flex-row items-stretch overflow-hidden rounded-xl border">
+    <article className="border-lm-line bg-lm-surface relative flex h-full flex-row items-stretch overflow-hidden rounded-xl border">
       <div className="bg-lm-surface after:[background-image:linear-gradient(to_right,transparent_65%,var(--color-lm-surface)_100%)] relative w-[104px] shrink-0 after:absolute after:inset-0 after:content-['']">
         {posterUrl ? (
           <img
@@ -50,16 +49,14 @@ export function MovieStub({
         </div>
         <div className="flex items-center justify-between gap-2 px-[18px] pb-2.5">
           <Stars rating={rating} />
-          <span
-            className={cn(
-              'rounded-full px-[9px] py-1 text-xs font-bold tracking-[0.05em]',
-              liked
-                ? 'bg-lm-red/16 text-[#e77b90]'
-                : 'bg-lm-mist/14 text-lm-mist',
-            )}
-          >
-            {liked ? 'Liked' : 'Not liked'}
-          </span>
+          {liked && (
+            <span
+              aria-label="Liked"
+              className="bg-lm-red/16 flex size-7 items-center justify-center rounded-full text-[#e77b90]"
+            >
+              <Heart aria-hidden="true" size={14} className="fill-current" />
+            </span>
+          )}
         </div>
         {review && (
           <p className="text-lm-mist px-[18px] pb-[18px] text-[13.5px] leading-[1.5] italic">
