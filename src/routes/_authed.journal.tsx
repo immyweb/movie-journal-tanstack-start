@@ -1,30 +1,12 @@
-import { useState } from 'react'
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  useRouter,
-} from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { Ticket } from 'lucide-react'
 
-import { getSession } from '#/lib/auth/functions'
 import { getJournalEntries } from '#/lib/journal/entries'
-import { authClient } from '#/lib/auth/client'
 import { Tear } from '#/components/tear-divider'
 import { TicketLink } from '#/components/ticket-button'
-import { MarqueeBulbs } from '#/components/marquee-bulbs'
 import { MovieStub } from '#/components/movie-stub'
 
-export const Route = createFileRoute('/journal')({
-  beforeLoad: async () => {
-    const session = await getSession()
-
-    if (!session) {
-      throw redirect({ to: '/sign-in' })
-    }
-
-    return { user: session.user }
-  },
+export const Route = createFileRoute('/_authed/journal')({
   loader: () => getJournalEntries(),
   head: () => ({
     meta: [{ title: 'Your journal — Movie Journal' }],
@@ -58,17 +40,9 @@ function counter(value: number) {
 function JournalPage() {
   const { user } = Route.useRouteContext()
   const entries = Route.useLoaderData()
-  const router = useRouter()
-  const [isSigningOut, setIsSigningOut] = useState(false)
 
   const firstName = user.name.split(' ')[0]
   const hasEntries = entries.length > 0
-
-  const handleSignOut = async () => {
-    setIsSigningOut(true)
-    await authClient.signOut()
-    await router.navigate({ to: '/' })
-  }
 
   const thisYear = new Date().getFullYear()
   const watchedThisYear = entries.filter(
@@ -85,26 +59,7 @@ function JournalPage() {
       : '—'
 
   return (
-    <div className="bg-lm-ink font-lm-sans text-lm-paper min-h-screen antialiased">
-      <header className="mx-auto flex max-w-[1120px] items-center justify-between px-6 py-[26px] max-sm:px-5">
-        <Link
-          to="/journal"
-          className="text-[15px] font-extrabold tracking-[0.06em] uppercase no-underline max-sm:text-[13px]"
-        >
-          Movie <span className="text-lm-amber">Journal</span>
-        </Link>
-        <button
-          type="button"
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-          className="border-lm-line text-lm-paper hover:border-lm-amber hover:bg-lm-amber/10 focus-visible:outline-lm-amber rounded-full border px-4 py-2 text-sm outline-none transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50"
-        >
-          {isSigningOut ? 'Signing out…' : 'Sign out'}
-        </button>
-      </header>
-
-      <MarqueeBulbs />
-
+    <>
       <section className="px-6 pt-6 pb-10 text-center">
         <div className="text-lm-amber font-lm-mono text-xs font-bold tracking-[0.14em] uppercase">
           Ticket holder
@@ -209,10 +164,6 @@ function JournalPage() {
           </div>
         </section>
       )}
-
-      <footer className="px-6 pt-7 pb-10 text-center text-[12.5px] text-[#565870]">
-        Movie Journal — a personal log for what you watch.
-      </footer>
-    </div>
+    </>
   )
 }

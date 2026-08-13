@@ -1,6 +1,5 @@
-import { Link } from '@tanstack/react-router'
-
 import { Tear } from '#/components/tear-divider'
+import { SiteHeader } from '#/components/site-header'
 
 export function AuthCard({
   eyebrow,
@@ -19,14 +18,7 @@ export function AuthCard({
 }) {
   return (
     <div className="bg-lm-ink font-lm-sans text-lm-paper flex min-h-screen flex-col antialiased">
-      <header className="mx-auto flex w-full max-w-[1120px] justify-center px-6 py-[26px] max-sm:px-5">
-        <Link
-          to="/"
-          className="text-[15px] font-extrabold tracking-[0.06em] uppercase max-sm:text-[13px]"
-        >
-          Movie <span className="text-lm-amber">Journal</span>
-        </Link>
-      </header>
+      <SiteHeader homeTo="/" />
 
       <Tear />
 

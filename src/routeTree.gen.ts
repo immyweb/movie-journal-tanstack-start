@@ -10,10 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as JournalRouteImport } from './routes/journal'
+import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as JournalNewRouteImport } from './routes/journal.new'
+import { Route as AuthedJournalRouteImport } from './routes/_authed.journal'
+import { Route as AuthedJournalNewRouteImport } from './routes/_authed.journal_.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -21,9 +22,8 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -36,10 +36,15 @@ const SignInRoute = SignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const JournalNewRoute = JournalNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => JournalRoute,
+const AuthedJournalRoute = AuthedJournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedJournalNewRoute = AuthedJournalNewRouteImport.update({
+  id: '/journal_/new',
+  path: '/journal/new',
+  getParentRoute: () => AuthedRoute,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
@@ -49,49 +54,51 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/journal': typeof JournalRouteWithChildren
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
-  '/journal/new': typeof JournalNewRoute
+  '/journal': typeof AuthedJournalRoute
+  '/journal/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/journal': typeof JournalRouteWithChildren
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
-  '/journal/new': typeof JournalNewRoute
+  '/journal': typeof AuthedJournalRoute
+  '/journal/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/journal': typeof JournalRouteWithChildren
+  '/_authed': typeof AuthedRouteWithChildren
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
-  '/journal/new': typeof JournalNewRoute
+  '/_authed/journal': typeof AuthedJournalRoute
+  '/_authed/journal_/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/journal' | '/register' | '/sign-in' | '/journal/new' | '/api/auth/$'
+    '/' | '/register' | '/sign-in' | '/journal' | '/journal/new' | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/journal' | '/register' | '/sign-in' | '/journal/new' | '/api/auth/$'
+    '/' | '/register' | '/sign-in' | '/journal' | '/journal/new' | '/api/auth/$'
   id:
     | '__root__'
     | '/'
-    | '/journal'
+    | '/_authed'
     | '/register'
     | '/sign-in'
-    | '/journal/new'
+    | '/_authed/journal'
+    | '/_authed/journal_/new'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  JournalRoute: typeof JournalRouteWithChildren
+  AuthedRoute: typeof AuthedRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   SignInRoute: typeof SignInRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -106,11 +113,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -127,12 +134,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/journal/new': {
-      id: '/journal/new'
-      path: '/new'
+    '/_authed/journal': {
+      id: '/_authed/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof AuthedJournalRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/journal_/new': {
+      id: '/_authed/journal_/new'
+      path: '/journal/new'
       fullPath: '/journal/new'
-      preLoaderRoute: typeof JournalNewRouteImport
-      parentRoute: typeof JournalRoute
+      preLoaderRoute: typeof AuthedJournalNewRouteImport
+      parentRoute: typeof AuthedRoute
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -144,20 +158,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface JournalRouteChildren {
-  JournalNewRoute: typeof JournalNewRoute
+interface AuthedRouteChildren {
+  AuthedJournalRoute: typeof AuthedJournalRoute
+  AuthedJournalNewRoute: typeof AuthedJournalNewRoute
 }
 
-const JournalRouteChildren: JournalRouteChildren = {
-  JournalNewRoute: JournalNewRoute,
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedJournalRoute: AuthedJournalRoute,
+  AuthedJournalNewRoute: AuthedJournalNewRoute,
 }
 
-const JournalRouteWithChildren =
-  JournalRoute._addFileChildren(JournalRouteChildren)
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  JournalRoute: JournalRouteWithChildren,
+  AuthedRoute: AuthedRouteWithChildren,
   RegisterRoute: RegisterRoute,
   SignInRoute: SignInRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
