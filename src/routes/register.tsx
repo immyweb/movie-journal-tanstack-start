@@ -7,6 +7,7 @@ import { authClient } from '#/lib/auth/client'
 import { registerSchema, type RegisterInput } from '#/lib/validation/auth'
 import { AuthCard } from '#/components/auth-card'
 import { AuthField } from '#/components/auth-field'
+import { ErrorBanner } from '#/components/error-banner'
 import { TicketSubmitButton } from '#/components/ticket-button'
 
 export const Route = createFileRoute('/register')({
@@ -93,14 +94,7 @@ function RegisterPage() {
           {...register('password')}
         />
 
-        {formError && (
-          <p
-            role="alert"
-            className="border-lm-red/40 bg-lm-red/10 text-lm-red rounded-md border px-3 py-2 text-sm"
-          >
-            {formError}
-          </p>
-        )}
+        {formError && <ErrorBanner>{formError}</ErrorBanner>}
 
         <TicketSubmitButton className="w-full" disabled={isSubmitting}>
           {isSubmitting ? 'Creating account…' : 'Register'}

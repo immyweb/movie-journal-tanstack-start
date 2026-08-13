@@ -27,7 +27,9 @@ function AuthedLayout() {
     <div className="bg-lm-ink font-lm-sans text-lm-paper min-h-screen antialiased">
       <SiteHeader homeTo="/journal" action={<SignOutButton />} />
       <MarqueeBulbs />
-      <Outlet />
+      <main>
+        <Outlet />
+      </main>
       <SiteFooter />
     </div>
   )

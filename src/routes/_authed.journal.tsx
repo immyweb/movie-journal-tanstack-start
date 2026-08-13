@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Ticket } from 'lucide-react'
 
 import { getJournalEntries } from '#/lib/journal/entries'
+import { formatReleaseYear } from '#/lib/format-release-year'
 import { Tear } from '#/components/tear-divider'
 import { TicketLink } from '#/components/ticket-button'
 import { MovieStub } from '#/components/movie-stub'
@@ -19,17 +20,17 @@ function toDate(value: Date | string) {
 }
 
 function formatDateWatched(value: Date | string) {
+  // dateWatched is stored as a UTC-anchored calendar date (see logFilm) —
+  // format in UTC too, so the date shown always matches what was picked,
+  // regardless of the viewer's local timezone.
   return new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+    timeZone: 'UTC',
   })
     .format(toDate(value))
     .toUpperCase()
-}
-
-function formatReleaseYear(releaseDate: string | null) {
-  return releaseDate ? releaseDate.slice(0, 4) : 'Year unknown'
 }
 
 // Zero-padded, like a box-office ticket-machine counter.

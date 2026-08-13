@@ -30,3 +30,11 @@ _Avoid_: Sign up, Create account
 **Sign In**:
 The action of authenticating as an existing User with email and password to start a session.
 _Avoid_: Log in, Login
+
+**Log a film**:
+The action of creating a JournalEntry: searching TMDB for a film, then recording when it was watched, a rating, a review, and like status.
+_Avoid_: Add movie, Add a movie, Log a movie
+
+**Watch count**:
+The number of JournalEntries a User has for a given Movie — a per-user rewatch tally, computed from JournalEntry rows rather than stored.
+_Avoid_: Rewatch count, Times watched
