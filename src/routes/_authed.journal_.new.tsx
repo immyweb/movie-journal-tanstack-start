@@ -1,23 +1,15 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { Controller, useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { Film } from 'lucide-react'
 
-import { cn } from '#/lib/utils'
 import { formatReleaseYear } from '#/lib/format-release-year'
-import {
-  logFilmFormSchema,
-  type LogFilmFormInput,
-} from '#/lib/validation/journal-entry'
+import { type LogFilmFormInput } from '#/lib/validation/journal-entry'
 import { searchMovies, type MovieSearchResult } from '#/lib/tmdb/search'
 import { getWatchCount } from '#/lib/journal/entries'
 import { logFilm } from '#/lib/journal/log-film'
 import { AuthField } from '#/components/auth-field'
-import { TextareaField } from '#/components/textarea-field'
-import { RatingInput } from '#/components/rating-input'
-import { TicketSubmitButton } from '#/components/ticket-button'
 import { ErrorBanner } from '#/components/error-banner'
+import { LogFilmForm } from '#/components/log-film-form'
 
 export const Route = createFileRoute('/_authed/journal_/new')({
   head: () => ({
@@ -103,7 +95,7 @@ function NewEntryPage() {
       <section className="px-6 pb-16">
         <div className="mx-auto max-w-[720px]">
           {selected ? (
-            <LogFilmForm
+            <NewEntryForm
               key={selected.tmdbId}
               movie={selected}
               onBack={() => setSelected(null)}
@@ -178,7 +170,7 @@ function NewEntryPage() {
   )
 }
 
-function LogFilmForm({
+function NewEntryForm({
   movie,
   onBack,
   onLogged,
@@ -188,7 +180,6 @@ function LogFilmForm({
   onLogged: () => void
 }) {
   const [watchCount, setWatchCount] = useState<number | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -206,24 +197,7 @@ function LogFilmForm({
     }
   }, [movie.tmdbId])
 
-  const {
-    control,
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<LogFilmFormInput>({
-    resolver: zodResolver(logFilmFormSchema),
-    defaultValues: {
-      dateWatched: todayLocalISODate(),
-      rating: null,
-      review: null,
-      like: false,
-    },
-  })
-
   const onSubmit = async (values: LogFilmFormInput) => {
-    setFormError(null)
-
     try {
       await logFilm({
         data: {
@@ -239,7 +213,7 @@ function LogFilmForm({
       // logFilm throws this one specific, safe-to-show message when TMDB
       // can't confirm a brand-new movie exists; anything else stays generic
       // so unrelated internal errors don't leak to the user.
-      setFormError(
+      throw new Error(
         error instanceof Error &&
           error.message === 'Could not find this film on TMDB.'
           ? error.message
@@ -249,113 +223,20 @@ function LogFilmForm({
   }
 
   return (
-    <div className="border-lm-line bg-lm-surface rounded-xl border p-6">
-      <div className="mb-5 flex items-start gap-4">
-        <div className="bg-lm-ink w-16 shrink-0 overflow-hidden rounded-md">
-          {movie.posterUrl ? (
-            <img
-              src={movie.posterUrl}
-              alt=""
-              className="block aspect-[2/3] w-full object-cover"
-            />
-          ) : (
-            <div className="text-lm-mist flex aspect-[2/3] w-full items-center justify-center">
-              <Film aria-hidden="true" size={20} />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[17px] leading-[1.25] font-extrabold">
-            {movie.title}
-          </div>
-          <div className="text-lm-mist text-[13px]">
-            {formatReleaseYear(movie.releaseDate)}
-          </div>
-          <button
-            type="button"
-            onClick={onBack}
-            className="text-lm-amber font-lm-mono mt-2 cursor-pointer text-xs tracking-[0.08em] uppercase underline underline-offset-4"
-          >
-            Change film
-          </button>
-        </div>
-      </div>
-
-      {watchCount != null && watchCount > 0 && (
-        <p
-          data-testid="watch-count-notice"
-          className="border-lm-line bg-lm-ink text-lm-mist mb-5 rounded-md border px-3 py-2 text-sm"
-        >
-          You&rsquo;ve logged this {watchCount} time
-          {watchCount === 1 ? '' : 's'} before — this will add a rewatch.
-        </p>
-      )}
-
-      <form className="space-y-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <AuthField
-          id="dateWatched"
-          label="Date watched"
-          type="date"
-          error={errors.dateWatched?.message}
-          {...register('dateWatched')}
-        />
-
-        <div className="space-y-1.5">
-          <span className="font-lm-mono text-lm-mist text-xs font-bold tracking-[0.08em] uppercase">
-            Rating
-          </span>
-          <Controller
-            control={control}
-            name="rating"
-            render={({ field }) => (
-              <RatingInput value={field.value} onChange={field.onChange} />
-            )}
-          />
-        </div>
-
-        <TextareaField
-          id="review"
-          label="Review"
-          placeholder="What did you think?"
-          error={errors.review?.message}
-          {...register('review')}
-        />
-
-        <div className="space-y-1.5">
-          <span className="font-lm-mono text-lm-mist text-xs font-bold tracking-[0.08em] uppercase">
-            Liked it?
-          </span>
-          <Controller
-            control={control}
-            name="like"
-            render={({ field }) => (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={field.value}
-                aria-label="Liked it?"
-                onClick={() => field.onChange(!field.value)}
-                className={cn(
-                  'cursor-pointer rounded-full px-[14px] py-2 text-xs font-bold tracking-[0.05em]',
-                  field.value
-                    ? 'bg-lm-red/16 text-[#e77b90]'
-                    : // lm-mist text fails AA (4.27:1) against this pill's
-                      // composited background — nudged lighter to clear 4.5:1.
-                      'bg-lm-mist/14 text-[#9698aa]',
-                )}
-              >
-                {field.value ? 'Liked' : 'Not liked'}
-              </button>
-            )}
-          />
-        </div>
-
-        {formError && <ErrorBanner>{formError}</ErrorBanner>}
-
-        <TicketSubmitButton className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Logging…' : 'Log this watch'}
-        </TicketSubmitButton>
-      </form>
-    </div>
+    <LogFilmForm
+      movie={movie}
+      defaultValues={{
+        dateWatched: todayLocalISODate(),
+        rating: null,
+        review: null,
+        like: false,
+      }}
+      watchCount={watchCount}
+      onCancel={onBack}
+      cancelLabel="Change film"
+      submitLabel="Log this watch"
+      submittingLabel="Logging…"
+      onSubmit={onSubmit}
+    />
   )
 }
