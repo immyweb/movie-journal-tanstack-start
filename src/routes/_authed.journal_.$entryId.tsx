@@ -98,16 +98,16 @@ function EntryDetailPage() {
           </div>
 
           <div className="border-lm-line bg-lm-surface w-full min-w-0 flex-1 rounded-xl border p-6">
-            <div className="mb-6 flex items-center justify-between gap-2">
-              <Stars rating={entry.rating} />
+            <div className="mb-7 flex items-center gap-4">
+              <Stars rating={entry.rating} size="lg" />
               {entry.like && (
                 <span
                   aria-label="Liked"
-                  className="bg-lm-red/16 flex size-7 items-center justify-center rounded-full text-[#e77b90]"
+                  className="bg-lm-red/16 shadow-[0_0_22px_-6px_rgba(197,64,90,0.55)] flex size-12 shrink-0 items-center justify-center rounded-full text-[#e77b90]"
                 >
                   <Heart
                     aria-hidden="true"
-                    size={14}
+                    size={24}
                     className="fill-current"
                   />
                 </span>
