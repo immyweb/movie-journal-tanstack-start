@@ -1,20 +1,6 @@
 import { z } from 'zod'
 
-// Fixed, labeled presets rather than a generic field+direction control (see
-// issue #1's Implementation Decisions) — only the dimensions built so far
-// (watched date, liked status, rating, decade) are listed here.
-export const journalSortValues = [
-  'most-recently-watched',
-  'earliest-watched',
-  'liked-first',
-  'highest-rated',
-  'oldest-decade',
-  'newest-decade',
-] as const
-
-export type JournalSort = (typeof journalSortValues)[number]
-
-export const defaultJournalSort: JournalSort = 'most-recently-watched'
+import { defaultJournalSort, journalSortValues } from '#/lib/journal/sort'
 
 // Shared between the route's validateSearch and getJournalEntries's
 // .validator() so the URL's shape and the server function's input shape

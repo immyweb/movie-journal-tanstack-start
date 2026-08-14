@@ -5,10 +5,11 @@ import userEvent from '@testing-library/user-event'
 import { renderAuthedRoute } from '#/test/render-authed-route'
 import { fakeJournalEntry, fakeMovie } from '#/test/fixtures/journal'
 import { fakeUser } from '#/test/fixtures/session'
-import { getJournalEntries } from '#/lib/journal/entries'
+import { getJournalPageData } from '#/lib/journal/page-data'
+import { getDecade } from '#/lib/journal/decade'
 
-vi.mock('#/lib/journal/entries', () => ({
-  getJournalEntries: vi.fn(),
+vi.mock('#/lib/journal/page-data', () => ({
+  getJournalPageData: vi.fn(),
 }))
 
 const likedEntry = {
@@ -76,6 +77,52 @@ const noReleaseDateEntry = {
   },
 }
 
+// Builds the shape getJournalPageData now returns in one call — facets and
+// stats always derived from the full (unfiltered) entry set, `entries`
+// defaulting to that same set unless a test needs to simulate an active
+// filter narrowing what's displayed. Mirrors loadJournalPageData's own
+// derivation (which has its own dedicated unit tests in page-data.test.ts)
+// so these route tests can focus on rendering/URL/interaction behavior
+// rather than re-proving the derivation math.
+type FakeEntry = Omit<typeof fakeJournalEntry, 'movie' | 'rating'> & {
+  rating: number | null
+  movie: Omit<typeof fakeMovie, 'releaseDate'> & { releaseDate: string | null }
+}
+
+function buildPageData(
+  allEntries: Array<FakeEntry>,
+  entries: Array<FakeEntry> = allEntries,
+) {
+  const thisYear = new Date().getFullYear()
+  const ratedEntries = allEntries.filter((entry) => entry.rating != null)
+
+  return {
+    entries,
+    genreOptions: Array.from(
+      new Set(allEntries.flatMap((entry) => entry.movie.genre ?? [])),
+    ).sort(),
+    decadeOptions: Array.from(
+      new Set(
+        allEntries
+          .map((entry) => getDecade(entry.movie.releaseDate))
+          .filter((decade): decade is number => decade !== null),
+      ),
+    ).sort((a, b) => a - b),
+    stats: {
+      totalCount: allEntries.length,
+      watchedThisYear: allEntries.filter(
+        (entry) => entry.dateWatched.getFullYear() === thisYear,
+      ).length,
+      likedCount: allEntries.filter((entry) => entry.like).length,
+      avgRating:
+        ratedEntries.length > 0
+          ? ratedEntries.reduce((sum, entry) => sum + (entry.rating ?? 0), 0) /
+            ratedEntries.length
+          : null,
+    },
+  }
+}
+
 // Each filter group now renders as a closed dropdown trigger (e.g. "Liked:
 // All") whose panel of radio/checkbox pills only mounts once opened — tests
 // that read or click those pills must open the trigger first. Matched by a
@@ -92,27 +139,29 @@ async function openFilter(
 describe('Journal', () => {
   it('shows stats and the stub grid when entries exist', async () => {
     const thisYear = new Date().getFullYear()
-    vi.mocked(getJournalEntries).mockResolvedValue([
-      {
-        ...fakeJournalEntry,
-        id: 'entry_1',
-        dateWatched: new Date(`${thisYear}-03-01T00:00:00Z`),
-        rating: 5,
-        like: true,
-      },
-      {
-        ...fakeJournalEntry,
-        id: 'entry_2',
-        movie: {
-          ...fakeMovie,
-          tmdbId: '274',
-          title: 'The Silence of the Lambs',
+    vi.mocked(getJournalPageData).mockResolvedValue(
+      buildPageData([
+        {
+          ...fakeJournalEntry,
+          id: 'entry_1',
+          dateWatched: new Date(`${thisYear}-03-01T00:00:00Z`),
+          rating: 5,
+          like: true,
         },
-        dateWatched: new Date('2020-01-01T00:00:00Z'),
-        rating: 3,
-        like: false,
-      },
-    ] as never)
+        {
+          ...fakeJournalEntry,
+          id: 'entry_2',
+          movie: {
+            ...fakeMovie,
+            tmdbId: '274',
+            title: 'The Silence of the Lambs',
+          },
+          dateWatched: new Date('2020-01-01T00:00:00Z'),
+          rating: 3,
+          like: false,
+        },
+      ]) as never,
+    )
 
     await renderAuthedRoute('/journal')
 
@@ -149,7 +198,7 @@ describe('Journal', () => {
   })
 
   it('shows the empty state when there are no entries', async () => {
-    vi.mocked(getJournalEntries).mockResolvedValue([])
+    vi.mocked(getJournalPageData).mockResolvedValue(buildPageData([]) as never)
 
     await renderAuthedRoute('/journal')
 
@@ -162,11 +211,12 @@ describe('Journal', () => {
 
   it('updates the URL and shows a results indicator when the Liked filter is used', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.liked === true
-          ? [likedEntry]
-          : [likedEntry, notLikedEntry]) as never,
+        buildPageData(
+          [likedEntry, notLikedEntry],
+          data.liked === true ? [likedEntry] : [likedEntry, notLikedEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -178,7 +228,7 @@ describe('Journal', () => {
     await waitFor(() =>
       expect(router.state.location.search).toEqual({ liked: true }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { liked: true, sort: 'most-recently-watched' },
     })
     expect(await screen.findByText('1 result')).toBeInTheDocument()
@@ -189,10 +239,9 @@ describe('Journal', () => {
 
   it('updates the URL when a sort preset is chosen', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockResolvedValue([
-      likedEntry,
-      notLikedEntry,
-    ] as never)
+    vi.mocked(getJournalPageData).mockResolvedValue(
+      buildPageData([likedEntry, notLikedEntry]) as never,
+    )
 
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
@@ -211,11 +260,12 @@ describe('Journal', () => {
 
   it('reproduces a filtered view when loading its URL directly', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.liked === false
-          ? [notLikedEntry]
-          : [likedEntry, notLikedEntry]) as never,
+        buildPageData(
+          [likedEntry, notLikedEntry],
+          data.liked === false ? [notLikedEntry] : [likedEntry, notLikedEntry],
+        ) as never,
     )
 
     await renderAuthedRoute('/journal?liked=false')
@@ -232,9 +282,12 @@ describe('Journal', () => {
 
   it('shows a distinct empty state when filters match nothing, with a way to clear them', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.liked === true ? [] : [likedEntry, notLikedEntry]) as never,
+        buildPageData(
+          [likedEntry, notLikedEntry],
+          data.liked === true ? [] : [likedEntry, notLikedEntry],
+        ) as never,
     )
 
     await renderAuthedRoute('/journal')
@@ -254,11 +307,14 @@ describe('Journal', () => {
 
   it('updates the URL and shows a results indicator when the rating filter is used', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.minRating === 4
-          ? [highRatedEntry]
-          : [highRatedEntry, lowRatedEntry]) as never,
+        buildPageData(
+          [highRatedEntry, lowRatedEntry],
+          data.minRating === 4
+            ? [highRatedEntry]
+            : [highRatedEntry, lowRatedEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -270,7 +326,7 @@ describe('Journal', () => {
     await waitFor(() =>
       expect(router.state.location.search).toEqual({ minRating: 4 }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { minRating: 4, sort: 'most-recently-watched' },
     })
     expect(await screen.findByText('1 result')).toBeInTheDocument()
@@ -281,10 +337,9 @@ describe('Journal', () => {
 
   it('selects the Highest rated sort preset', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockResolvedValue([
-      highRatedEntry,
-      lowRatedEntry,
-    ] as never)
+    vi.mocked(getJournalPageData).mockResolvedValue(
+      buildPageData([highRatedEntry, lowRatedEntry]) as never,
+    )
 
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
@@ -301,11 +356,14 @@ describe('Journal', () => {
 
   it('combines the rating filter with the Liked filter using AND', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.liked === true && data.minRating === 4
-          ? [highRatedEntry]
-          : [highRatedEntry, lowRatedEntry]) as never,
+        buildPageData(
+          [highRatedEntry, lowRatedEntry],
+          data.liked === true && data.minRating === 4
+            ? [highRatedEntry]
+            : [highRatedEntry, lowRatedEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -322,18 +380,21 @@ describe('Journal', () => {
         minRating: 4,
       }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { liked: true, minRating: 4, sort: 'most-recently-watched' },
     })
   })
 
   it('reproduces a rating-filtered view when loading its URL directly', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.minRating === 4
-          ? [highRatedEntry]
-          : [highRatedEntry, lowRatedEntry]) as never,
+        buildPageData(
+          [highRatedEntry, lowRatedEntry],
+          data.minRating === 4
+            ? [highRatedEntry]
+            : [highRatedEntry, lowRatedEntry],
+        ) as never,
     )
 
     await renderAuthedRoute('/journal?minRating=4')
@@ -351,10 +412,9 @@ describe('Journal', () => {
 
   it('shows a genre filter option list limited to genres present in the Journal', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockResolvedValue([
-      dramaEntry,
-      comedyEntry,
-    ] as never)
+    vi.mocked(getJournalPageData).mockResolvedValue(
+      buildPageData([dramaEntry, comedyEntry]) as never,
+    )
 
     await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
@@ -369,11 +429,14 @@ describe('Journal', () => {
 
   it('updates the URL and filters entries when a genre is selected', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.genre?.includes('Comedy')
-          ? [comedyEntry]
-          : [dramaEntry, comedyEntry]) as never,
+        buildPageData(
+          [dramaEntry, comedyEntry],
+          data.genre?.includes('Comedy')
+            ? [comedyEntry]
+            : [dramaEntry, comedyEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -385,7 +448,7 @@ describe('Journal', () => {
     await waitFor(() =>
       expect(router.state.location.search).toEqual({ genre: ['Comedy'] }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { genre: ['Comedy'], sort: 'most-recently-watched' },
     })
     expect(await screen.findByText('1 result')).toBeInTheDocument()
@@ -394,13 +457,16 @@ describe('Journal', () => {
 
   it('matches entries with ANY of several selected genres (OR within category)', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.genre
-          ? [dramaEntry, comedyEntry].filter((entry) =>
-              entry.movie.genre.some((g) => data.genre!.includes(g)),
-            )
-          : [dramaEntry, comedyEntry]) as never,
+        buildPageData(
+          [dramaEntry, comedyEntry],
+          data.genre
+            ? [dramaEntry, comedyEntry].filter((entry) =>
+                entry.movie.genre.some((g) => data.genre!.includes(g)),
+              )
+            : [dramaEntry, comedyEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -420,11 +486,14 @@ describe('Journal', () => {
 
   it('combines the genre filter with the Liked filter using AND', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.genre?.includes('Drama') && data.liked === true
-          ? [dramaEntry]
-          : [dramaEntry, comedyEntry]) as never,
+        buildPageData(
+          [dramaEntry, comedyEntry],
+          data.genre?.includes('Drama') && data.liked === true
+            ? [dramaEntry]
+            : [dramaEntry, comedyEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -441,7 +510,7 @@ describe('Journal', () => {
         liked: true,
       }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { genre: ['Drama'], liked: true, sort: 'most-recently-watched' },
     })
     expect(await screen.findByText('1 result')).toBeInTheDocument()
@@ -449,11 +518,14 @@ describe('Journal', () => {
 
   it('reproduces a genre-filtered view when loading its URL directly', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.genre?.includes('Comedy')
-          ? [comedyEntry]
-          : [dramaEntry, comedyEntry]) as never,
+        buildPageData(
+          [dramaEntry, comedyEntry],
+          data.genre?.includes('Comedy')
+            ? [comedyEntry]
+            : [dramaEntry, comedyEntry],
+        ) as never,
     )
 
     await renderAuthedRoute(
@@ -472,11 +544,13 @@ describe('Journal', () => {
 
   it('shows a decade filter option list limited to decades present in the Journal, excluding entries with no release date', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockResolvedValue([
-      ninetiesEntry,
-      twentyTensEntry,
-      noReleaseDateEntry,
-    ] as never)
+    vi.mocked(getJournalPageData).mockResolvedValue(
+      buildPageData([
+        ninetiesEntry,
+        twentyTensEntry,
+        noReleaseDateEntry,
+      ]) as never,
+    )
 
     await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
@@ -491,11 +565,14 @@ describe('Journal', () => {
 
   it('updates the URL and filters entries when a decade is selected', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.decade?.includes(1990)
-          ? [ninetiesEntry]
-          : [ninetiesEntry, twentyTensEntry]) as never,
+        buildPageData(
+          [ninetiesEntry, twentyTensEntry],
+          data.decade?.includes(1990)
+            ? [ninetiesEntry]
+            : [ninetiesEntry, twentyTensEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -507,7 +584,7 @@ describe('Journal', () => {
     await waitFor(() =>
       expect(router.state.location.search).toEqual({ decade: [1990] }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { decade: [1990], sort: 'most-recently-watched' },
     })
     expect(await screen.findByText('1 result')).toBeInTheDocument()
@@ -518,16 +595,20 @@ describe('Journal', () => {
 
   it('matches entries in ANY of several selected decades (OR within category)', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.decade
-          ? [ninetiesEntry, twentyTensEntry].filter((entry) => {
-              const decade =
-                Math.floor(Number(entry.movie.releaseDate!.slice(0, 4)) / 10) *
-                10
-              return data.decade!.includes(decade)
-            })
-          : [ninetiesEntry, twentyTensEntry]) as never,
+        buildPageData(
+          [ninetiesEntry, twentyTensEntry],
+          data.decade
+            ? [ninetiesEntry, twentyTensEntry].filter((entry) => {
+                const decade =
+                  Math.floor(
+                    Number(entry.movie.releaseDate!.slice(0, 4)) / 10,
+                  ) * 10
+                return data.decade!.includes(decade)
+              })
+            : [ninetiesEntry, twentyTensEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -547,11 +628,14 @@ describe('Journal', () => {
 
   it('combines the decade filter with the Liked filter using AND', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.decade?.includes(1990) && data.liked === true
-          ? [ninetiesEntry]
-          : [ninetiesEntry, twentyTensEntry]) as never,
+        buildPageData(
+          [ninetiesEntry, twentyTensEntry],
+          data.decade?.includes(1990) && data.liked === true
+            ? [ninetiesEntry]
+            : [ninetiesEntry, twentyTensEntry],
+        ) as never,
     )
 
     const { router } = await renderAuthedRoute('/journal')
@@ -568,7 +652,7 @@ describe('Journal', () => {
         liked: true,
       }),
     )
-    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+    expect(vi.mocked(getJournalPageData)).toHaveBeenCalledWith({
       data: { decade: [1990], liked: true, sort: 'most-recently-watched' },
     })
     expect(await screen.findByText('1 result')).toBeInTheDocument()
@@ -576,11 +660,14 @@ describe('Journal', () => {
 
   it('reproduces a decade-filtered view when loading its URL directly', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.decade?.includes(1990)
-          ? [ninetiesEntry]
-          : [ninetiesEntry, twentyTensEntry]) as never,
+        buildPageData(
+          [ninetiesEntry, twentyTensEntry],
+          data.decade?.includes(1990)
+            ? [ninetiesEntry]
+            : [ninetiesEntry, twentyTensEntry],
+        ) as never,
     )
 
     await renderAuthedRoute(
@@ -600,11 +687,12 @@ describe('Journal', () => {
   })
 
   it('excludes entries with no release date only while a decade filter is active', async () => {
-    vi.mocked(getJournalEntries).mockImplementation(
+    vi.mocked(getJournalPageData).mockImplementation(
       async ({ data }) =>
-        (data.decade
-          ? [ninetiesEntry]
-          : [ninetiesEntry, noReleaseDateEntry]) as never,
+        buildPageData(
+          [ninetiesEntry, noReleaseDateEntry],
+          data.decade ? [ninetiesEntry] : [ninetiesEntry, noReleaseDateEntry],
+        ) as never,
     )
 
     await renderAuthedRoute('/journal')
@@ -615,10 +703,9 @@ describe('Journal', () => {
 
   it('selects the Oldest decade and Newest decade sort presets', async () => {
     const user = userEvent.setup()
-    vi.mocked(getJournalEntries).mockResolvedValue([
-      ninetiesEntry,
-      twentyTensEntry,
-    ] as never)
+    vi.mocked(getJournalPageData).mockResolvedValue(
+      buildPageData([ninetiesEntry, twentyTensEntry]) as never,
+    )
 
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')

@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildJournalQuery } from '#/lib/journal/build-journal-query'
-import { defaultJournalSort } from '#/lib/journal/search-params'
+import { defaultJournalSort } from '#/lib/journal/sort'
 
 describe('buildJournalQuery', () => {
-  it('applies no liked filter and sorts by watched-date descending by default', () => {
+  it('applies no liked filter by default', () => {
     const plan = buildJournalQuery({ sort: defaultJournalSort })
 
     expect(plan.liked).toBeUndefined()
-    expect(plan.orderBy).toEqual([{ column: 'dateWatched', direction: 'desc' }])
   })
 
   it('filters to liked-only entries', () => {
@@ -21,31 +20,6 @@ describe('buildJournalQuery', () => {
     const plan = buildJournalQuery({ liked: false, sort: defaultJournalSort })
 
     expect(plan.liked).toBe(false)
-  })
-
-  it('sorts earliest-watched first, ascending by watched date', () => {
-    const plan = buildJournalQuery({ sort: 'earliest-watched' })
-
-    expect(plan.orderBy).toEqual([{ column: 'dateWatched', direction: 'asc' }])
-  })
-
-  it('sorts liked entries first, falling back to watched-date descending as a tiebreaker', () => {
-    const plan = buildJournalQuery({ sort: 'liked-first' })
-
-    expect(plan.orderBy).toEqual([
-      { column: 'like', direction: 'desc' },
-      { column: 'dateWatched', direction: 'desc' },
-    ])
-  })
-
-  it('combines a liked filter with a sort preset independently', () => {
-    const plan = buildJournalQuery({ liked: true, sort: 'liked-first' })
-
-    expect(plan.liked).toBe(true)
-    expect(plan.orderBy).toEqual([
-      { column: 'like', direction: 'desc' },
-      { column: 'dateWatched', direction: 'desc' },
-    ])
   })
 
   it('applies no rating filter by default', () => {
@@ -69,20 +43,11 @@ describe('buildJournalQuery', () => {
     ).toBe(5)
   })
 
-  it('sorts highest-rated first, with unrated entries always last regardless of direction', () => {
-    const plan = buildJournalQuery({ sort: 'highest-rated' })
-
-    expect(plan.orderBy).toEqual([
-      { column: 'rating', direction: 'desc', nulls: 'last' },
-      { column: 'dateWatched', direction: 'desc' },
-    ])
-  })
-
   it('combines a rating filter with the liked filter independently (AND across categories)', () => {
     const plan = buildJournalQuery({
       liked: true,
       minRating: 4,
-      sort: 'highest-rated',
+      sort: defaultJournalSort,
     })
 
     expect(plan.liked).toBe(true)
@@ -109,7 +74,7 @@ describe('buildJournalQuery', () => {
       liked: true,
       minRating: 4,
       genre: ['Comedy'],
-      sort: 'highest-rated',
+      sort: defaultJournalSort,
     })
 
     expect(plan.liked).toBe(true)
@@ -150,20 +115,11 @@ describe('buildJournalQuery', () => {
     expect(plan.decade).toEqual([{ start: '1990-01-01', end: '2000-01-01' }])
   })
 
-  it('sorts oldest-decade first, with no-release-date entries always last, tiebreaking on watched date', () => {
-    const plan = buildJournalQuery({ sort: 'oldest-decade' })
+  it('delegates orderBy to the sort module for the requested preset', () => {
+    const plan = buildJournalQuery({ sort: 'liked-first' })
 
     expect(plan.orderBy).toEqual([
-      { column: 'releaseDate', direction: 'asc', nulls: 'last' },
-      { column: 'dateWatched', direction: 'desc' },
-    ])
-  })
-
-  it('sorts newest-decade first, with no-release-date entries always last, tiebreaking on watched date', () => {
-    const plan = buildJournalQuery({ sort: 'newest-decade' })
-
-    expect(plan.orderBy).toEqual([
-      { column: 'releaseDate', direction: 'desc', nulls: 'last' },
+      { column: 'like', direction: 'desc' },
       { column: 'dateWatched', direction: 'desc' },
     ])
   })

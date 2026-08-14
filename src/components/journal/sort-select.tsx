@@ -1,15 +1,6 @@
 import { ChevronDown } from 'lucide-react'
 
-import type { JournalSort } from '#/lib/journal/search-params'
-
-const SORT_OPTIONS: Array<{ value: JournalSort; label: string }> = [
-  { value: 'most-recently-watched', label: 'Most recently watched' },
-  { value: 'earliest-watched', label: 'Earliest watched' },
-  { value: 'liked-first', label: 'Liked first' },
-  { value: 'highest-rated', label: 'Highest rated' },
-  { value: 'oldest-decade', label: 'Oldest decade' },
-  { value: 'newest-decade', label: 'Newest decade' },
-]
+import { journalSortOptions, type JournalSort } from '#/lib/journal/sort'
 
 export function SortSelect({
   value,
@@ -29,7 +20,7 @@ export function SortSelect({
         onChange={(event) => onChange(event.target.value as JournalSort)}
         className="border-lm-line bg-lm-mist/10 text-[#9698aa] focus-visible:border-lm-amber focus-visible:ring-lm-amber/30 h-9 cursor-pointer appearance-none rounded-full border py-0 pr-8 pl-3.5 text-xs font-bold tracking-[0.03em] outline-none transition-colors focus-visible:ring-3"
       >
-        {SORT_OPTIONS.map((option) => (
+        {journalSortOptions.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>

@@ -5,16 +5,15 @@ import {
 } from '@tanstack/react-router'
 import { SearchX, Ticket } from 'lucide-react'
 
-import { getDecade } from '#/lib/journal/decade'
-import { getJournalEntries } from '#/lib/journal/entries'
+import { getJournalPageData } from '#/lib/journal/page-data'
 import {
-  defaultJournalSort,
   journalSearchSchema,
-  type JournalSort,
+  type JournalSearch,
 } from '#/lib/journal/search-params'
+import { defaultJournalSort, getSortSectionLabel } from '#/lib/journal/sort'
 import { cn } from '#/lib/utils'
 import { formatReleaseYear } from '#/lib/format-release-year'
-import { toDate, formatDateWatched } from '#/lib/format-date-watched'
+import { formatDateWatched } from '#/lib/format-date-watched'
 import { Tear } from '#/components/tear-divider'
 import { TicketLink, ticketButtonClass } from '#/components/ticket-button'
 import { MovieStub } from '#/components/movie-stub'
@@ -27,13 +26,7 @@ export const Route = createFileRoute('/_authed/journal')({
     middlewares: [stripSearchParams({ sort: defaultJournalSort })],
   },
   loaderDeps: ({ search }) => ({ search }),
-  loader: async ({ deps }) => {
-    const [allEntries, entries] = await Promise.all([
-      getJournalEntries({ data: {} }),
-      getJournalEntries({ data: deps.search }),
-    ])
-    return { allEntries, entries }
-  },
+  loader: async ({ deps }) => getJournalPageData({ data: deps.search }),
   head: () => ({
     meta: [{ title: 'Your journal — Movie Journal' }],
   }),
@@ -45,57 +38,26 @@ function counter(value: number) {
   return String(value).padStart(3, '0')
 }
 
-// Describes the active sort so the section subheading stays accurate once
-// sorting is more than just "most recently watched".
-function sortSectionLabel(sort: JournalSort) {
-  switch (sort) {
-    case 'earliest-watched':
-      return 'Oldest watched first'
-    case 'liked-first':
-      return 'Liked films first'
-    case 'highest-rated':
-      return 'Highest rated first'
-    case 'oldest-decade':
-      return 'Oldest decade first'
-    case 'newest-decade':
-      return 'Newest decade first'
-    case 'most-recently-watched':
-      return 'In order of last seen'
-  }
-}
-
 function JournalPage() {
   const { user } = Route.useRouteContext()
-  const { allEntries, entries } = Route.useLoaderData()
+  const { entries, genreOptions, decadeOptions, stats } = Route.useLoaderData()
   const search = Route.useSearch()
   const navigate = Route.useNavigate()
 
-  const firstName = user.name.split(' ')[0]
-  const hasEntries = allEntries.length > 0
+  function setJournalFilter<K extends keyof JournalSearch>(
+    field: K,
+    value: JournalSearch[K],
+  ) {
+    navigate({
+      search: (prev) => ({ ...prev, [field]: value }),
+      replace: true,
+    })
+  }
 
-  const thisYear = new Date().getFullYear()
-  const watchedThisYear = allEntries.filter(
-    (entry) => toDate(entry.dateWatched).getFullYear() === thisYear,
-  ).length
-  const likedCount = allEntries.filter((entry) => entry.like).length
-  const genreOptions = Array.from(
-    new Set(allEntries.flatMap((entry) => entry.movie.genre ?? [])),
-  ).sort()
-  const decadeOptions = Array.from(
-    new Set(
-      allEntries
-        .map((entry) => getDecade(entry.movie.releaseDate))
-        .filter((decade) => decade !== null),
-    ),
-  ).sort((a, b) => a - b)
-  const ratedEntries = allEntries.filter((entry) => entry.rating != null)
-  const avgRating =
-    ratedEntries.length > 0
-      ? (
-          ratedEntries.reduce((sum, entry) => sum + (entry.rating ?? 0), 0) /
-          ratedEntries.length
-        ).toFixed(1)
-      : '—'
+  const firstName = user.name.split(' ')[0]
+  const hasEntries = stats.totalCount > 0
+  const avgRatingDisplay =
+    stats.avgRating !== null ? stats.avgRating.toFixed(1) : '—'
 
   return (
     <>
@@ -108,7 +70,7 @@ function JournalPage() {
         </h1>
         <p className="text-lm-mist mx-auto max-w-[520px] text-[1.05rem] leading-[1.6]">
           {hasEntries
-            ? `You've logged ${allEntries.length} film${allEntries.length === 1 ? '' : 's'} so far.`
+            ? `You've logged ${stats.totalCount} film${stats.totalCount === 1 ? '' : 's'} so far.`
             : "You haven't logged a film yet — your first stub is one watch away."}
         </p>
 
@@ -119,7 +81,7 @@ function JournalPage() {
                 Films logged
               </dt>
               <dd className="font-lm-mono text-lg font-bold tabular-nums sm:text-2xl">
-                {counter(allEntries.length)}
+                {counter(stats.totalCount)}
               </dd>
             </div>
             <div className="flex flex-col gap-1 px-2.5 py-4 sm:px-5">
@@ -127,7 +89,7 @@ function JournalPage() {
                 This year
               </dt>
               <dd className="font-lm-mono text-lg font-bold tabular-nums sm:text-2xl">
-                {counter(watchedThisYear)}
+                {counter(stats.watchedThisYear)}
               </dd>
             </div>
             <div className="flex flex-col gap-1 px-2.5 py-4 sm:px-5">
@@ -135,7 +97,7 @@ function JournalPage() {
                 Liked
               </dt>
               <dd className="font-lm-mono text-lg font-bold tabular-nums sm:text-2xl">
-                {counter(likedCount)}
+                {counter(stats.likedCount)}
               </dd>
             </div>
             <div className="flex flex-col gap-1 px-2.5 py-4 sm:px-5">
@@ -143,8 +105,8 @@ function JournalPage() {
                 Avg rating
               </dt>
               <dd className="text-lm-amber font-lm-mono text-lg font-bold tabular-nums sm:text-2xl">
-                {avgRating}
-                {avgRating !== '—' && (
+                {avgRatingDisplay}
+                {stats.avgRating !== null && (
                   <span className="text-sm sm:text-base"> ★</span>
                 )}
               </dd>
@@ -160,7 +122,7 @@ function JournalPage() {
           <div className="mx-auto mb-[26px] flex max-w-[1120px] flex-wrap items-end justify-between gap-4">
             <div>
               <div className="text-lm-amber text-xs font-bold tracking-[0.14em] uppercase">
-                {sortSectionLabel(search.sort)}
+                {getSortSectionLabel(search.sort)}
               </div>
               <h2 className="mt-2.5 text-[clamp(1.4rem,3vw,1.9rem)] font-extrabold">
                 Your stubs
@@ -181,36 +143,13 @@ function JournalPage() {
               decadeOptions={decadeOptions}
               sort={search.sort}
               resultsCount={entries.length}
-              onLikedChange={(liked) =>
-                navigate({
-                  search: (prev) => ({ ...prev, liked }),
-                  replace: true,
-                })
-              }
+              onLikedChange={(liked) => setJournalFilter('liked', liked)}
               onMinRatingChange={(minRating) =>
-                navigate({
-                  search: (prev) => ({ ...prev, minRating }),
-                  replace: true,
-                })
+                setJournalFilter('minRating', minRating)
               }
-              onGenreChange={(genre) =>
-                navigate({
-                  search: (prev) => ({ ...prev, genre }),
-                  replace: true,
-                })
-              }
-              onDecadeChange={(decade) =>
-                navigate({
-                  search: (prev) => ({ ...prev, decade }),
-                  replace: true,
-                })
-              }
-              onSortChange={(sort) =>
-                navigate({
-                  search: (prev) => ({ ...prev, sort }),
-                  replace: true,
-                })
-              }
+              onGenreChange={(genre) => setJournalFilter('genre', genre)}
+              onDecadeChange={(decade) => setJournalFilter('decade', decade)}
+              onSortChange={(sort) => setJournalFilter('sort', sort)}
             />
           </div>
 

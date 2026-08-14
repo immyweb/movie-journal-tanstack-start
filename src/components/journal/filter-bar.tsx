@@ -4,7 +4,7 @@ import { LikedFilter } from '#/components/journal/liked-filter'
 import { RatingFilter } from '#/components/journal/rating-filter'
 import { SortSelect } from '#/components/journal/sort-select'
 import { cn } from '#/lib/utils'
-import type { JournalSort } from '#/lib/journal/search-params'
+import type { JournalSort } from '#/lib/journal/sort'
 
 export function JournalFilterBar({
   liked,
