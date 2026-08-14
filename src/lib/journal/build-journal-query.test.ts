@@ -116,4 +116,55 @@ describe('buildJournalQuery', () => {
     expect(plan.minRating).toBe(4)
     expect(plan.genre).toEqual(['Comedy'])
   })
+
+  it('applies no decade filter by default', () => {
+    const plan = buildJournalQuery({ sort: defaultJournalSort })
+
+    expect(plan.decade).toBeUndefined()
+  })
+
+  it('filters to entries in any of the selected decades (OR within category), computing [start, end) bounds', () => {
+    const plan = buildJournalQuery({
+      decade: [1990, 2010],
+      sort: defaultJournalSort,
+    })
+
+    expect(plan.decade).toEqual([
+      { start: '1990-01-01', end: '2000-01-01' },
+      { start: '2010-01-01', end: '2020-01-01' },
+    ])
+  })
+
+  it('combines a decade filter with the liked, rating, and genre filters independently (AND across categories)', () => {
+    const plan = buildJournalQuery({
+      liked: true,
+      minRating: 4,
+      genre: ['Comedy'],
+      decade: [1990],
+      sort: defaultJournalSort,
+    })
+
+    expect(plan.liked).toBe(true)
+    expect(plan.minRating).toBe(4)
+    expect(plan.genre).toEqual(['Comedy'])
+    expect(plan.decade).toEqual([{ start: '1990-01-01', end: '2000-01-01' }])
+  })
+
+  it('sorts oldest-decade first, with no-release-date entries always last, tiebreaking on watched date', () => {
+    const plan = buildJournalQuery({ sort: 'oldest-decade' })
+
+    expect(plan.orderBy).toEqual([
+      { column: 'releaseDate', direction: 'asc', nulls: 'last' },
+      { column: 'dateWatched', direction: 'desc' },
+    ])
+  })
+
+  it('sorts newest-decade first, with no-release-date entries always last, tiebreaking on watched date', () => {
+    const plan = buildJournalQuery({ sort: 'newest-decade' })
+
+    expect(plan.orderBy).toEqual([
+      { column: 'releaseDate', direction: 'desc', nulls: 'last' },
+      { column: 'dateWatched', direction: 'desc' },
+    ])
+  })
 })

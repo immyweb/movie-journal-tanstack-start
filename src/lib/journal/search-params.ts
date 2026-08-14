@@ -2,12 +2,14 @@ import { z } from 'zod'
 
 // Fixed, labeled presets rather than a generic field+direction control (see
 // issue #1's Implementation Decisions) — only the dimensions built so far
-// (watched date, liked status, rating) are listed here.
+// (watched date, liked status, rating, decade) are listed here.
 export const journalSortValues = [
   'most-recently-watched',
   'earliest-watched',
   'liked-first',
   'highest-rated',
+  'oldest-decade',
+  'newest-decade',
 ] as const
 
 export type JournalSort = (typeof journalSortValues)[number]
@@ -26,6 +28,7 @@ export const journalSearchSchema = z.object({
   liked: z.boolean().optional().catch(undefined),
   minRating: z.number().int().min(1).max(5).optional().catch(undefined),
   genre: z.array(z.string()).min(1).optional().catch(undefined),
+  decade: z.array(z.number().int()).min(1).optional().catch(undefined),
   sort: z
     .enum(journalSortValues)
     .default(defaultJournalSort)

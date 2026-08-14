@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-router'
 import { SearchX, Ticket } from 'lucide-react'
 
+import { getDecade } from '#/lib/journal/decade'
 import { getJournalEntries } from '#/lib/journal/entries'
 import {
   defaultJournalSort,
@@ -54,6 +55,10 @@ function sortSectionLabel(sort: JournalSort) {
       return 'Liked films first'
     case 'highest-rated':
       return 'Highest rated first'
+    case 'oldest-decade':
+      return 'Oldest decade first'
+    case 'newest-decade':
+      return 'Newest decade first'
     case 'most-recently-watched':
       return 'In order of last seen'
   }
@@ -76,6 +81,13 @@ function JournalPage() {
   const genreOptions = Array.from(
     new Set(allEntries.flatMap((entry) => entry.movie.genre ?? [])),
   ).sort()
+  const decadeOptions = Array.from(
+    new Set(
+      allEntries
+        .map((entry) => getDecade(entry.movie.releaseDate))
+        .filter((decade) => decade !== null),
+    ),
+  ).sort((a, b) => a - b)
   const ratedEntries = allEntries.filter((entry) => entry.rating != null)
   const avgRating =
     ratedEntries.length > 0
@@ -165,6 +177,8 @@ function JournalPage() {
               minRating={search.minRating}
               genre={search.genre}
               genreOptions={genreOptions}
+              decade={search.decade}
+              decadeOptions={decadeOptions}
               sort={search.sort}
               resultsCount={entries.length}
               onLikedChange={(liked) =>
@@ -182,6 +196,12 @@ function JournalPage() {
               onGenreChange={(genre) =>
                 navigate({
                   search: (prev) => ({ ...prev, genre }),
+                  replace: true,
+                })
+              }
+              onDecadeChange={(decade) =>
+                navigate({
+                  search: (prev) => ({ ...prev, decade }),
                   replace: true,
                 })
               }

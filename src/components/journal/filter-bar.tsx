@@ -1,3 +1,4 @@
+import { DecadeFilter } from '#/components/journal/decade-filter'
 import { GenreFilter } from '#/components/journal/genre-filter'
 import { LikedFilter } from '#/components/journal/liked-filter'
 import { RatingFilter } from '#/components/journal/rating-filter'
@@ -10,26 +11,35 @@ export function JournalFilterBar({
   minRating,
   genre,
   genreOptions,
+  decade,
+  decadeOptions,
   sort,
   resultsCount,
   onLikedChange,
   onMinRatingChange,
   onGenreChange,
+  onDecadeChange,
   onSortChange,
 }: {
   liked: boolean | undefined
   minRating: number | undefined
   genre: Array<string> | undefined
   genreOptions: Array<string>
+  decade: Array<number> | undefined
+  decadeOptions: Array<number>
   sort: JournalSort
   resultsCount: number
   onLikedChange: (value: boolean | undefined) => void
   onMinRatingChange: (value: number | undefined) => void
   onGenreChange: (value: Array<string> | undefined) => void
+  onDecadeChange: (value: Array<number> | undefined) => void
   onSortChange: (value: JournalSort) => void
 }) {
   const isFiltered =
-    liked !== undefined || minRating !== undefined || genre !== undefined
+    liked !== undefined ||
+    minRating !== undefined ||
+    genre !== undefined ||
+    decade !== undefined
 
   return (
     <div className="border-lm-line bg-lm-surface/60 mx-auto mb-[26px] flex max-w-[1120px] flex-wrap items-end justify-between gap-4 rounded-xl border px-5 py-4">
@@ -40,6 +50,11 @@ export function JournalFilterBar({
           value={genre}
           options={genreOptions}
           onChange={onGenreChange}
+        />
+        <DecadeFilter
+          value={decade}
+          options={decadeOptions}
+          onChange={onDecadeChange}
         />
         <SortSelect value={sort} onChange={onSortChange} />
       </div>

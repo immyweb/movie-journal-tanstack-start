@@ -5,6 +5,8 @@ const SORT_OPTIONS: Array<{ value: JournalSort; label: string }> = [
   { value: 'earliest-watched', label: 'Earliest watched' },
   { value: 'liked-first', label: 'Liked first' },
   { value: 'highest-rated', label: 'Highest rated' },
+  { value: 'oldest-decade', label: 'Oldest decade' },
+  { value: 'newest-decade', label: 'Newest decade' },
 ]
 
 export function SortSelect({

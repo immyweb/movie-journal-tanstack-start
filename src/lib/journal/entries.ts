@@ -7,6 +7,8 @@ import {
   eq,
   exists,
   gte,
+  lt,
+  or,
   sql,
 } from 'drizzle-orm'
 import { z } from 'zod'
@@ -17,12 +19,6 @@ import { ensureSession } from '#/lib/auth/functions'
 import { buildJournalQuery } from '#/lib/journal/build-journal-query'
 import { journalSearchSchema } from '#/lib/journal/search-params'
 
-const orderByColumn = {
-  dateWatched: journalEntry.dateWatched,
-  like: journalEntry.like,
-  rating: journalEntry.rating,
-}
-
 export const getJournalEntries = createServerFn({ method: 'GET' })
   .validator(journalSearchSchema)
   .handler(async ({ data }) => {
@@ -30,10 +26,11 @@ export const getJournalEntries = createServerFn({ method: 'GET' })
     const plan = buildJournalQuery(data)
 
     return db.query.journalEntry.findMany({
-      // Callback form so the correlated genre subquery below can reference
-      // this query's own aliased `journalEntry` (t.movieId) — the relational
-      // query API renames the primary table per-query, so the imported
-      // `journalEntry` table object doesn't match inside a subquery.
+      // Callback form so the correlated genre/decade subqueries below can
+      // reference this query's own aliased `journalEntry` (t.movieId) — the
+      // relational query API renames the primary table per-query, so the
+      // imported `journalEntry` table object doesn't match inside a
+      // subquery.
       where: (t) =>
         and(
           eq(t.userId, session.user.id),
@@ -46,9 +43,9 @@ export const getJournalEntries = createServerFn({ method: 'GET' })
             : gte(t.rating, plan.minRating),
           // The relational query API's top-level `where` only sees
           // journalEntry's own columns — a `with: { movie: true }` relation
-          // isn't joined into it — so genre needs a correlated EXISTS
-          // subquery rather than a direct reference to movie.genre. ANY of
-          // the selected genres matches (OR within category, via the &&
+          // isn't joined into it — so genre/decade need a correlated EXISTS
+          // subquery rather than a direct reference to movie's columns. ANY
+          // of the selected genres matches (OR within category, via the &&
           // "overlaps" operator), AND'd alongside Liked/Rating (AND across
           // categories, issue #4).
           plan.genre === undefined
@@ -64,17 +61,58 @@ export const getJournalEntries = createServerFn({ method: 'GET' })
                     ),
                   ),
               ),
+          // ANY of the selected decade ranges matches (OR within category).
+          // A null releaseDate never satisfies gte/lt, so it's excluded here
+          // by standard SQL null semantics — but only while a decade filter
+          // is active, since this whole branch is skipped otherwise (issue
+          // #5). This is the SQL form of decade.ts's `matchesDecadeFilter`,
+          // which states and unit-tests the same rule DB-independently.
+          plan.decade === undefined
+            ? undefined
+            : exists(
+                db
+                  .select({ id: sql`1` })
+                  .from(movie)
+                  .where(
+                    and(
+                      eq(movie.tmdbId, t.movieId),
+                      or(
+                        ...plan.decade.map(({ start, end }) =>
+                          and(
+                            gte(movie.releaseDate, start),
+                            lt(movie.releaseDate, end),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ),
         ),
       with: { movie: true },
-      orderBy: plan.orderBy.map(({ column, direction, nulls }) => {
-        const orderedColumn = orderByColumn[column]
-        if (nulls === 'last') {
-          return direction === 'asc'
-            ? sql`${orderedColumn} asc nulls last`
-            : sql`${orderedColumn} desc nulls last`
-        }
-        return direction === 'asc' ? asc(orderedColumn) : desc(orderedColumn)
-      }),
+      // Also callback form: releaseDate-based sorting needs the same
+      // correlated-subquery treatment as the genre/decade filters above.
+      // Interpolating movie's columns directly into a raw `sql` fragment
+      // here (rather than through a proper `db.select()...` subquery
+      // object) was tried and mis-resolves them against journalEntry's own
+      // alias — confirmed by running this against the real database this
+      // session — so releaseDate goes through an explicit subquery object,
+      // same shape as the EXISTS subqueries above.
+      orderBy: (t) =>
+        plan.orderBy.map(({ column, direction, nulls }) => {
+          const orderedColumn =
+            column === 'releaseDate'
+              ? db
+                  .select({ releaseDate: movie.releaseDate })
+                  .from(movie)
+                  .where(eq(movie.tmdbId, t.movieId))
+              : t[column]
+          if (nulls === 'last') {
+            return direction === 'asc'
+              ? sql`(${orderedColumn}) asc nulls last`
+              : sql`(${orderedColumn}) desc nulls last`
+          }
+          return direction === 'asc' ? asc(orderedColumn) : desc(orderedColumn)
+        }),
     })
   })
 

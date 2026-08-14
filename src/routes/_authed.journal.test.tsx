@@ -50,6 +50,31 @@ const comedyEntry = {
     genre: ['Comedy'],
   },
 }
+const ninetiesEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_1',
+  movie: { ...fakeMovie, releaseDate: '1996-12-07' },
+}
+const twentyTensEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_2',
+  movie: {
+    ...fakeMovie,
+    tmdbId: '274',
+    title: 'The Silence of the Lambs',
+    releaseDate: '2015-08-21',
+  },
+}
+const noReleaseDateEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_3',
+  movie: {
+    ...fakeMovie,
+    tmdbId: '309919',
+    title: 'The Curse of Downers Grove',
+    releaseDate: null,
+  },
+}
 
 describe('Journal', () => {
   it('shows stats and the stub grid when entries exist', async () => {
@@ -413,5 +438,169 @@ describe('Journal', () => {
     )
     expect(screen.getByText('1 result')).toBeInTheDocument()
     expect(screen.queryByText('Parasite')).not.toBeInTheDocument()
+  })
+
+  it('shows a decade filter option list limited to decades present in the Journal, excluding entries with no release date', async () => {
+    vi.mocked(getJournalEntries).mockResolvedValue([
+      ninetiesEntry,
+      twentyTensEntry,
+      noReleaseDateEntry,
+    ] as never)
+
+    await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    expect(screen.getByRole('checkbox', { name: '1990s' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: '2010s' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('checkbox', { name: '2020s' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('updates the URL and filters entries when a decade is selected', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.decade?.includes(1990)
+          ? [ninetiesEntry]
+          : [ninetiesEntry, twentyTensEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('checkbox', { name: '1990s' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ decade: [1990] }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { decade: [1990], sort: 'most-recently-watched' },
+    })
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+    expect(
+      screen.queryByText('The Silence of the Lambs'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('matches entries in ANY of several selected decades (OR within category)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.decade
+          ? [ninetiesEntry, twentyTensEntry].filter((entry) => {
+              const decade =
+                Math.floor(Number(entry.movie.releaseDate!.slice(0, 4)) / 10) *
+                10
+              return data.decade!.includes(decade)
+            })
+          : [ninetiesEntry, twentyTensEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('checkbox', { name: '1990s' }))
+    await user.click(screen.getByRole('checkbox', { name: '2010s' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        decade: [1990, 2010],
+      }),
+    )
+    expect(await screen.findByText('2 results')).toBeInTheDocument()
+  })
+
+  it('combines the decade filter with the Liked filter using AND', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.decade?.includes(1990) && data.liked === true
+          ? [ninetiesEntry]
+          : [ninetiesEntry, twentyTensEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('checkbox', { name: '1990s' }))
+    await user.click(screen.getByRole('radio', { name: 'Liked' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        decade: [1990],
+        liked: true,
+      }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { decade: [1990], liked: true, sort: 'most-recently-watched' },
+    })
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+  })
+
+  it('reproduces a decade-filtered view when loading its URL directly', async () => {
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.decade?.includes(1990)
+          ? [ninetiesEntry]
+          : [ninetiesEntry, twentyTensEntry]) as never,
+    )
+
+    await renderAuthedRoute(
+      `/journal?decade=${encodeURIComponent(JSON.stringify([1990]))}`,
+    )
+    await screen.findByText('Parasite')
+
+    expect(screen.getByRole('checkbox', { name: '1990s' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getByText('1 result')).toBeInTheDocument()
+    expect(
+      screen.queryByText('The Silence of the Lambs'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('excludes entries with no release date only while a decade filter is active', async () => {
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.decade
+          ? [ninetiesEntry]
+          : [ninetiesEntry, noReleaseDateEntry]) as never,
+    )
+
+    await renderAuthedRoute('/journal')
+    expect(
+      await screen.findByText('The Curse of Downers Grove'),
+    ).toBeInTheDocument()
+  })
+
+  it('selects the Oldest decade and Newest decade sort presets', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockResolvedValue([
+      ninetiesEntry,
+      twentyTensEntry,
+    ] as never)
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.selectOptions(screen.getByLabelText('Sort by'), 'Oldest decade')
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        sort: 'oldest-decade',
+      }),
+    )
+    expect(await screen.findByText('Oldest decade first')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Sort by'), 'Newest decade')
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        sort: 'newest-decade',
+      }),
+    )
+    expect(await screen.findByText('Newest decade first')).toBeInTheDocument()
   })
 })
