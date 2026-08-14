@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 
 import { renderAuthedRoute } from '#/test/render-authed-route'
 import { fakeJournalEntry, fakeMovie } from '#/test/fixtures/journal'
@@ -9,6 +10,18 @@ import { getJournalEntries } from '#/lib/journal/entries'
 vi.mock('#/lib/journal/entries', () => ({
   getJournalEntries: vi.fn(),
 }))
+
+const likedEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_1',
+  like: true,
+}
+const notLikedEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_2',
+  movie: { ...fakeMovie, tmdbId: '274', title: 'The Silence of the Lambs' },
+  like: false,
+}
 
 describe('Journal', () => {
   it('shows stats and the stub grid when entries exist', async () => {
@@ -43,16 +56,20 @@ describe('Journal', () => {
       }),
     ).toBeInTheDocument()
 
-    const filmsLoggedStat = screen.getByText('Films logged').closest('div')!
+    const stats = screen.getByText('Films logged').closest('dl')!
+
+    const filmsLoggedStat = within(stats)
+      .getByText('Films logged')
+      .closest('div')!
     expect(within(filmsLoggedStat).getByText('002')).toBeInTheDocument()
 
-    const thisYearStat = screen.getByText('This year').closest('div')!
+    const thisYearStat = within(stats).getByText('This year').closest('div')!
     expect(within(thisYearStat).getByText('001')).toBeInTheDocument()
 
-    const likedStat = screen.getByText('Liked').closest('div')!
+    const likedStat = within(stats).getByText('Liked').closest('div')!
     expect(within(likedStat).getByText('001')).toBeInTheDocument()
 
-    const avgRatingStat = screen.getByText('Avg rating').closest('div')!
+    const avgRatingStat = within(stats).getByText('Avg rating').closest('div')!
     expect(
       within(avgRatingStat).getByText('4.0', { exact: false }),
     ).toBeInTheDocument()
@@ -75,5 +92,93 @@ describe('Journal', () => {
     expect(
       screen.getByRole('link', { name: 'Log your first watch' }),
     ).toHaveAttribute('href', '/journal/new')
+  })
+
+  it('updates the URL and shows a results indicator when the Liked filter is used', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.liked === true
+          ? [likedEntry]
+          : [likedEntry, notLikedEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('radio', { name: 'Liked' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ liked: true }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { liked: true, sort: 'most-recently-watched' },
+    })
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+    expect(
+      screen.queryByText('The Silence of the Lambs'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('updates the URL when a sort preset is chosen', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockResolvedValue([
+      likedEntry,
+      notLikedEntry,
+    ] as never)
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.selectOptions(
+      screen.getByLabelText('Sort by'),
+      'Earliest watched',
+    )
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        sort: 'earliest-watched',
+      }),
+    )
+  })
+
+  it('reproduces a filtered view when loading its URL directly', async () => {
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.liked === false
+          ? [notLikedEntry]
+          : [likedEntry, notLikedEntry]) as never,
+    )
+
+    await renderAuthedRoute('/journal?liked=false')
+    await screen.findByText('The Silence of the Lambs')
+
+    expect(screen.getByRole('radio', { name: 'Not liked' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getByText('1 result')).toBeInTheDocument()
+    expect(screen.queryByText('Parasite')).not.toBeInTheDocument()
+  })
+
+  it('shows a distinct empty state when filters match nothing, with a way to clear them', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.liked === true ? [] : [likedEntry, notLikedEntry]) as never,
+    )
+
+    await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('radio', { name: 'Liked' }))
+
+    expect(
+      await screen.findByText('No matches for these filters'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('No stubs yet')).not.toBeInTheDocument()
+
+    const clearLink = screen.getByRole('link', { name: 'Clear filters' })
+    expect(clearLink).toHaveAttribute('href', '/journal')
   })
 })
