@@ -1,6 +1,7 @@
 import { Film, Heart } from 'lucide-react'
 
 import { Stars } from '#/components/stars'
+import { cn } from '#/lib/utils'
 
 // The torn admission-ticket card — one per watched film. Shared between the
 // homepage showcase and the journal grid, which both render the same shape.
@@ -49,20 +50,32 @@ export function MovieStub({
         </div>
         <div className="flex items-center justify-between gap-2 px-[18px] pb-2.5">
           <Stars rating={rating} />
-          {liked && (
-            <span
-              aria-label="Liked"
-              className="bg-lm-red/16 flex size-7 items-center justify-center rounded-full text-[#e77b90]"
-            >
-              <Heart aria-hidden="true" size={14} className="fill-current" />
-            </span>
+          {/* Always takes up its size-7 slot, just invisible when not
+              liked — otherwise the badge's extra height only shows up on
+              liked entries, and CSS Grid's per-row stretch turns that into
+              a height mismatch between rows depending on which happen to
+              contain a liked film. */}
+          <span
+            aria-label={liked ? 'Liked' : undefined}
+            className={cn(
+              'flex size-7 shrink-0 items-center justify-center rounded-full',
+              liked ? 'bg-lm-red/16 text-[#e77b90]' : 'invisible',
+            )}
+          >
+            <Heart aria-hidden="true" size={14} className="fill-current" />
+          </span>
+        </div>
+        {/* Fixed-height slot (~3 clamped lines) regardless of whether a
+            review exists — otherwise CSS Grid's per-row stretch leaves
+            rows with no long reviews visibly shorter than rows that have
+            one, since each row is sized independently. */}
+        <div className="min-h-[79px] px-[18px] pb-[18px]">
+          {review && (
+            <p className="text-lm-mist line-clamp-3 text-[13.5px] leading-[1.5] italic">
+              &ldquo;{review}&rdquo;
+            </p>
           )}
         </div>
-        {review && (
-          <p className="text-lm-mist px-[18px] pb-[18px] text-[13.5px] leading-[1.5] italic">
-            &ldquo;{review}&rdquo;
-          </p>
-        )}
         <div className="font-lm-mono text-lm-mist mt-auto px-[18px] pb-4 text-[11.5px] tracking-[0.04em]">
           WATCHED {dateWatchedLabel}
         </div>
