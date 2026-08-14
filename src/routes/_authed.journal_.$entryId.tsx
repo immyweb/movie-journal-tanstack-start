@@ -6,6 +6,7 @@ import { formatDateWatched } from '#/lib/format-date-watched'
 import { getJournalEntryDetail } from '#/lib/journal/entry-detail'
 import { Stars } from '#/components/stars'
 import { ticketButtonClass } from '#/components/ticket-button'
+import { EntryNotFound } from '#/components/entry-not-found'
 
 export const Route = createFileRoute('/_authed/journal_/$entryId')({
   loader: async ({ params }) => {
@@ -22,6 +23,7 @@ export const Route = createFileRoute('/_authed/journal_/$entryId')({
       ? [{ title: `${loaderData.entry.movie.title} — Movie Journal` }]
       : undefined,
   }),
+  notFoundComponent: EntryNotFound,
   component: EntryDetailPage,
 })
 

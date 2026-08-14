@@ -1,28 +1,17 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen } from '@testing-library/react'
 
 import { renderRoute } from '#/test/render-route'
-import type { ShowcaseFilm } from '#/lib/tmdb/showcase'
+import { getShowcaseFilms } from '#/lib/tmdb/showcase'
+import { showcaseFilms } from '#/test/fixtures/journal'
 
-vi.mock('#/lib/tmdb/showcase', () => {
-  const showcaseFilms: Array<ShowcaseFilm> = [
-    {
-      tmdbId: '496243',
-      title: 'Parasite',
-      year: '2019',
-      country: 'South Korea',
-      rating: 5,
-      liked: true,
-      review: 'Still thinking about the stairs.',
-      dateWatched: '12 Jul 2026',
-      posterUrl: 'https://image.tmdb.org/t/p/w342/poster.jpg',
-    },
-  ]
-
-  return { getShowcaseFilms: vi.fn().mockResolvedValue(showcaseFilms) }
-})
+vi.mock('#/lib/tmdb/showcase', () => ({ getShowcaseFilms: vi.fn() }))
 
 describe('Home', () => {
+  beforeEach(() => {
+    vi.mocked(getShowcaseFilms).mockResolvedValue(showcaseFilms)
+  })
+
   it('renders the showcase films from the loader', async () => {
     await renderRoute('/')
 

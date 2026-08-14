@@ -8,7 +8,8 @@ export default defineConfig({
   plugins: [viteReact()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/setup.ts', './src/test/mocks/auth.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    mockReset: true,
   },
 })

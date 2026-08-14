@@ -13,6 +13,7 @@ import { editFilm, getJournalEntryForEdit } from '#/lib/journal/edit-film'
 import { deleteFilm } from '#/lib/journal/delete-film'
 import { LogFilmForm } from '#/components/log-film-form'
 import { ErrorBanner } from '#/components/error-banner'
+import { EntryNotFound } from '#/components/entry-not-found'
 
 export const Route = createFileRoute('/_authed/journal_/$entryId_/edit')({
   loader: async ({ params }) => {
@@ -29,6 +30,7 @@ export const Route = createFileRoute('/_authed/journal_/$entryId_/edit')({
       ? [{ title: `Edit ${loaderData.movie.title} — Movie Journal` }]
       : undefined,
   }),
+  notFoundComponent: EntryNotFound,
   component: EditEntryPage,
 })
 
