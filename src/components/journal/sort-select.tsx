@@ -1,3 +1,5 @@
+import { ChevronDown } from 'lucide-react'
+
 import type { JournalSort } from '#/lib/journal/search-params'
 
 const SORT_OPTIONS: Array<{ value: JournalSort; label: string }> = [
@@ -17,18 +19,15 @@ export function SortSelect({
   onChange: (value: JournalSort) => void
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor="journal-sort"
-        className="font-lm-mono text-lm-mist text-xs font-bold tracking-[0.08em] uppercase"
-      >
+    <div className="relative inline-flex h-9 items-center">
+      <label htmlFor="journal-sort" className="sr-only">
         Sort by
       </label>
       <select
         id="journal-sort"
         value={value}
         onChange={(event) => onChange(event.target.value as JournalSort)}
-        className="border-lm-line bg-lm-ink text-lm-paper focus-visible:border-lm-amber focus-visible:ring-lm-amber/30 h-9 cursor-pointer rounded-md border px-2.5 text-sm outline-none transition-colors focus-visible:ring-3"
+        className="border-lm-line bg-lm-mist/10 text-[#9698aa] focus-visible:border-lm-amber focus-visible:ring-lm-amber/30 h-9 cursor-pointer appearance-none rounded-full border py-0 pr-8 pl-3.5 text-xs font-bold tracking-[0.03em] outline-none transition-colors focus-visible:ring-3"
       >
         {SORT_OPTIONS.map((option) => (
           <option key={option.value} value={option.value}>
@@ -36,6 +35,11 @@ export function SortSelect({
           </option>
         ))}
       </select>
+      <ChevronDown
+        aria-hidden="true"
+        size={14}
+        className="text-lm-mist pointer-events-none absolute right-3 opacity-70"
+      />
     </div>
   )
 }

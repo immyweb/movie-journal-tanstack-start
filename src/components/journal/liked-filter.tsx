@@ -1,9 +1,16 @@
+import { useState } from 'react'
+
+import { FilterDropdown } from '#/components/journal/filter-dropdown'
 import { FilterPill } from '#/components/journal/filter-pill'
 
-const OPTIONS: Array<{ value: 'all' | 'true' | 'false'; label: string }> = [
-  { value: 'all', label: 'All' },
-  { value: 'true', label: 'Liked' },
-  { value: 'false', label: 'Not liked' },
+const OPTIONS: Array<{
+  value: 'all' | 'true' | 'false'
+  label: string
+  summary: string
+}> = [
+  { value: 'all', label: 'All', summary: 'All' },
+  { value: 'true', label: 'Liked', summary: 'Yes' },
+  { value: 'false', label: 'Not liked', summary: 'No' },
 ]
 
 export function LikedFilter({
@@ -13,28 +20,34 @@ export function LikedFilter({
   value: boolean | undefined
   onChange: (value: boolean | undefined) => void
 }) {
+  const [open, setOpen] = useState(false)
   const selected = value === undefined ? 'all' : value ? 'true' : 'false'
+  const summary = OPTIONS.find((option) => option.value === selected)!.summary
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="font-lm-mono text-lm-mist text-xs font-bold tracking-[0.08em] uppercase">
-        Liked
-      </span>
+    <FilterDropdown
+      label="Liked"
+      summary={summary}
+      active={value !== undefined}
+      open={open}
+      onOpenChange={setOpen}
+    >
       <div role="radiogroup" aria-label="Liked" className="flex gap-1.5">
         {OPTIONS.map((option) => (
           <FilterPill
             key={option.value}
             selected={selected === option.value}
-            onClick={() =>
+            onClick={() => {
               onChange(
                 option.value === 'all' ? undefined : option.value === 'true',
               )
-            }
+              setOpen(false)
+            }}
           >
             {option.label}
           </FilterPill>
         ))}
       </div>
-    </div>
+    </FilterDropdown>
   )
 }

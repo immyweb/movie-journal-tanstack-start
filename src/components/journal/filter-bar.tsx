@@ -42,8 +42,8 @@ export function JournalFilterBar({
     decade !== undefined
 
   return (
-    <div className="border-lm-line bg-lm-surface/60 mx-auto mb-[26px] flex max-w-[1120px] flex-wrap items-end justify-between gap-4 rounded-xl border px-5 py-4">
-      <div className="flex flex-wrap items-end gap-5">
+    <div className="border-lm-line bg-lm-surface/60 mx-auto mb-[26px] flex max-w-[1120px] flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
         <LikedFilter value={liked} onChange={onLikedChange} />
         <RatingFilter value={minRating} onChange={onMinRatingChange} />
         <GenreFilter

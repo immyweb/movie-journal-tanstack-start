@@ -1,10 +1,12 @@
+import { FilterDropdown } from '#/components/journal/filter-dropdown'
 import { FilterPill } from '#/components/journal/filter-pill'
 import { formatDecade } from '#/lib/journal/decade'
 
 // Multi-select — ANY of the selected decades matches (issue #5). Not
 // rendered at all when there are no decades to offer, since the option list
 // only ever reflects decades actually present across the current user's
-// Journal entries.
+// Journal entries. The panel stays open across toggles (unlike
+// Liked/Rating) so several decades can be picked in one pass.
 export function DecadeFilter({
   value,
   options,
@@ -17,6 +19,12 @@ export function DecadeFilter({
   if (options.length === 0) return null
 
   const selected = value ?? []
+  const summary =
+    selected.length === 0
+      ? 'All'
+      : selected.length === 1
+        ? formatDecade(selected[0]!)
+        : `${selected.length} selected`
 
   function toggle(decade: number) {
     const next = selected.includes(decade)
@@ -26,11 +34,16 @@ export function DecadeFilter({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="font-lm-mono text-lm-mist text-xs font-bold tracking-[0.08em] uppercase">
-        Decade
-      </span>
-      <div role="group" aria-label="Decade" className="flex flex-wrap gap-1.5">
+    <FilterDropdown
+      label="Decade"
+      summary={summary}
+      active={selected.length > 0}
+    >
+      <div
+        role="group"
+        aria-label="Decade"
+        className="flex max-h-56 flex-wrap gap-1.5 overflow-y-auto"
+      >
         {options.map((decade) => (
           <FilterPill
             key={decade}
@@ -42,6 +55,6 @@ export function DecadeFilter({
           </FilterPill>
         ))}
       </div>
-    </div>
+    </FilterDropdown>
   )
 }

@@ -76,6 +76,19 @@ const noReleaseDateEntry = {
   },
 }
 
+// Each filter group now renders as a closed dropdown trigger (e.g. "Liked:
+// All") whose panel of radio/checkbox pills only mounts once opened — tests
+// that read or click those pills must open the trigger first. Matched by a
+// name prefix since the trailing summary changes with the selected value.
+async function openFilter(
+  user: ReturnType<typeof userEvent.setup>,
+  label: 'Liked' | 'Rating' | 'Genre' | 'Decade',
+) {
+  await user.click(
+    screen.getByRole('button', { name: new RegExp(`^${label}:`) }),
+  )
+}
+
 describe('Journal', () => {
   it('shows stats and the stub grid when entries exist', async () => {
     const thisYear = new Date().getFullYear()
@@ -159,6 +172,7 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Liked')
     await user.click(screen.getByRole('radio', { name: 'Liked' }))
 
     await waitFor(() =>
@@ -196,6 +210,7 @@ describe('Journal', () => {
   })
 
   it('reproduces a filtered view when loading its URL directly', async () => {
+    const user = userEvent.setup()
     vi.mocked(getJournalEntries).mockImplementation(
       async ({ data }) =>
         (data.liked === false
@@ -206,6 +221,7 @@ describe('Journal', () => {
     await renderAuthedRoute('/journal?liked=false')
     await screen.findByText('The Silence of the Lambs')
 
+    await openFilter(user, 'Liked')
     expect(screen.getByRole('radio', { name: 'Not liked' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -224,6 +240,7 @@ describe('Journal', () => {
     await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Liked')
     await user.click(screen.getByRole('radio', { name: 'Liked' }))
 
     expect(
@@ -247,6 +264,7 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Rating')
     await user.click(screen.getByRole('radio', { name: '4 stars and up' }))
 
     await waitFor(() =>
@@ -293,7 +311,9 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Liked')
     await user.click(screen.getByRole('radio', { name: 'Liked' }))
+    await openFilter(user, 'Rating')
     await user.click(screen.getByRole('radio', { name: '4 stars and up' }))
 
     await waitFor(() =>
@@ -308,6 +328,7 @@ describe('Journal', () => {
   })
 
   it('reproduces a rating-filtered view when loading its URL directly', async () => {
+    const user = userEvent.setup()
     vi.mocked(getJournalEntries).mockImplementation(
       async ({ data }) =>
         (data.minRating === 4
@@ -318,6 +339,7 @@ describe('Journal', () => {
     await renderAuthedRoute('/journal?minRating=4')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Rating')
     expect(
       screen.getByRole('radio', { name: '4 stars and up' }),
     ).toHaveAttribute('aria-checked', 'true')
@@ -328,6 +350,7 @@ describe('Journal', () => {
   })
 
   it('shows a genre filter option list limited to genres present in the Journal', async () => {
+    const user = userEvent.setup()
     vi.mocked(getJournalEntries).mockResolvedValue([
       dramaEntry,
       comedyEntry,
@@ -336,6 +359,7 @@ describe('Journal', () => {
     await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Genre')
     expect(screen.getByRole('checkbox', { name: 'Drama' })).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Comedy' })).toBeInTheDocument()
     expect(
@@ -355,6 +379,7 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Genre')
     await user.click(screen.getByRole('checkbox', { name: 'Comedy' }))
 
     await waitFor(() =>
@@ -381,6 +406,7 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Genre')
     await user.click(screen.getByRole('checkbox', { name: 'Drama' }))
     await user.click(screen.getByRole('checkbox', { name: 'Comedy' }))
 
@@ -404,7 +430,9 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Genre')
     await user.click(screen.getByRole('checkbox', { name: 'Drama' }))
+    await openFilter(user, 'Liked')
     await user.click(screen.getByRole('radio', { name: 'Liked' }))
 
     await waitFor(() =>
@@ -420,6 +448,7 @@ describe('Journal', () => {
   })
 
   it('reproduces a genre-filtered view when loading its URL directly', async () => {
+    const user = userEvent.setup()
     vi.mocked(getJournalEntries).mockImplementation(
       async ({ data }) =>
         (data.genre?.includes('Comedy')
@@ -432,6 +461,7 @@ describe('Journal', () => {
     )
     await screen.findByText('The Silence of the Lambs')
 
+    await openFilter(user, 'Genre')
     expect(screen.getByRole('checkbox', { name: 'Comedy' })).toHaveAttribute(
       'aria-checked',
       'true',
@@ -441,6 +471,7 @@ describe('Journal', () => {
   })
 
   it('shows a decade filter option list limited to decades present in the Journal, excluding entries with no release date', async () => {
+    const user = userEvent.setup()
     vi.mocked(getJournalEntries).mockResolvedValue([
       ninetiesEntry,
       twentyTensEntry,
@@ -450,6 +481,7 @@ describe('Journal', () => {
     await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Decade')
     expect(screen.getByRole('checkbox', { name: '1990s' })).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: '2010s' })).toBeInTheDocument()
     expect(
@@ -469,6 +501,7 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Decade')
     await user.click(screen.getByRole('checkbox', { name: '1990s' }))
 
     await waitFor(() =>
@@ -500,6 +533,7 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Decade')
     await user.click(screen.getByRole('checkbox', { name: '1990s' }))
     await user.click(screen.getByRole('checkbox', { name: '2010s' }))
 
@@ -523,7 +557,9 @@ describe('Journal', () => {
     const { router } = await renderAuthedRoute('/journal')
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Decade')
     await user.click(screen.getByRole('checkbox', { name: '1990s' }))
+    await openFilter(user, 'Liked')
     await user.click(screen.getByRole('radio', { name: 'Liked' }))
 
     await waitFor(() =>
@@ -539,6 +575,7 @@ describe('Journal', () => {
   })
 
   it('reproduces a decade-filtered view when loading its URL directly', async () => {
+    const user = userEvent.setup()
     vi.mocked(getJournalEntries).mockImplementation(
       async ({ data }) =>
         (data.decade?.includes(1990)
@@ -551,6 +588,7 @@ describe('Journal', () => {
     )
     await screen.findByText('Parasite')
 
+    await openFilter(user, 'Decade')
     expect(screen.getByRole('checkbox', { name: '1990s' })).toHaveAttribute(
       'aria-checked',
       'true',
