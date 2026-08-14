@@ -13,8 +13,16 @@ A user's personal record of having watched a specific Movie — when they watche
 _Avoid_: WatchedMovie, Entry, Log, MovieEntry
 
 **Journal**:
-The full collection of a single user's JournalEntries, browsable and filterable on the Journal page.
+The full collection of a single user's JournalEntries, browsable on the Journal page. Filterable by Genre, Decade, rating (minimum threshold), and like status; sortable by rating, Decade, dateWatched, and like status — but not by Genre (ADR 0012).
 _Avoid_: Watchlist, Library
+
+**Genre**:
+One or more categories TMDB assigns to a Movie (e.g. Thriller, Comedy). Cached on the Movie row at add-time specifically to support server-side Journal filtering (ADR 0012) — unlike the other detail-page-only TMDB fields. Not a sort dimension: a Movie can carry several genres, so there's no single value to order by.
+_Avoid_: Category, tag
+
+**Decade**:
+The 10-year span a Movie's releaseDate falls into (e.g. the 1990s), used only to filter and sort the Journal. Never stored — always computed from releaseDate at query time.
+_Avoid_: Era, release decade
 
 **TMDB**:
 The Movie Database — the external API that supplies movie search results and catalog data. Referenced via each Movie's TMDB id; not owned by this system.
