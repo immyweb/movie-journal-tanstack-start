@@ -7,6 +7,7 @@ export const fakeMovie = {
   title: 'Parasite',
   posterImg: 'https://image.tmdb.org/t/p/w342/poster.jpg',
   releaseDate: '2019-05-30',
+  genre: ['Thriller', 'Drama'],
   createdAt: new Date('2026-01-01T00:00:00Z'),
 }
 

@@ -25,6 +25,7 @@ export const defaultJournalSort: JournalSort = 'most-recently-watched'
 export const journalSearchSchema = z.object({
   liked: z.boolean().optional().catch(undefined),
   minRating: z.number().int().min(1).max(5).optional().catch(undefined),
+  genre: z.array(z.string()).min(1).optional().catch(undefined),
   sort: z
     .enum(journalSortValues)
     .default(defaultJournalSort)

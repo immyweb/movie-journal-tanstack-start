@@ -33,6 +33,23 @@ const lowRatedEntry = {
   movie: { ...fakeMovie, tmdbId: '274', title: 'The Silence of the Lambs' },
   rating: 2,
 }
+const dramaEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_1',
+  like: true,
+  movie: { ...fakeMovie, genre: ['Drama'] },
+}
+const comedyEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_2',
+  like: false,
+  movie: {
+    ...fakeMovie,
+    tmdbId: '274',
+    title: 'The Silence of the Lambs',
+    genre: ['Comedy'],
+  },
+}
 
 describe('Journal', () => {
   it('shows stats and the stub grid when entries exist', async () => {
@@ -283,5 +300,118 @@ describe('Journal', () => {
     expect(
       screen.queryByText('The Silence of the Lambs'),
     ).not.toBeInTheDocument()
+  })
+
+  it('shows a genre filter option list limited to genres present in the Journal', async () => {
+    vi.mocked(getJournalEntries).mockResolvedValue([
+      dramaEntry,
+      comedyEntry,
+    ] as never)
+
+    await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    expect(screen.getByRole('checkbox', { name: 'Drama' })).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Comedy' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('checkbox', { name: 'Horror' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('updates the URL and filters entries when a genre is selected', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.genre?.includes('Comedy')
+          ? [comedyEntry]
+          : [dramaEntry, comedyEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('checkbox', { name: 'Comedy' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ genre: ['Comedy'] }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { genre: ['Comedy'], sort: 'most-recently-watched' },
+    })
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+    expect(screen.queryByText('Parasite')).not.toBeInTheDocument()
+  })
+
+  it('matches entries with ANY of several selected genres (OR within category)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.genre
+          ? [dramaEntry, comedyEntry].filter((entry) =>
+              entry.movie.genre.some((g) => data.genre!.includes(g)),
+            )
+          : [dramaEntry, comedyEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('checkbox', { name: 'Drama' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Comedy' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        genre: ['Drama', 'Comedy'],
+      }),
+    )
+    expect(await screen.findByText('2 results')).toBeInTheDocument()
+  })
+
+  it('combines the genre filter with the Liked filter using AND', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.genre?.includes('Drama') && data.liked === true
+          ? [dramaEntry]
+          : [dramaEntry, comedyEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('checkbox', { name: 'Drama' }))
+    await user.click(screen.getByRole('radio', { name: 'Liked' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        genre: ['Drama'],
+        liked: true,
+      }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { genre: ['Drama'], liked: true, sort: 'most-recently-watched' },
+    })
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+  })
+
+  it('reproduces a genre-filtered view when loading its URL directly', async () => {
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.genre?.includes('Comedy')
+          ? [comedyEntry]
+          : [dramaEntry, comedyEntry]) as never,
+    )
+
+    await renderAuthedRoute(
+      `/journal?genre=${encodeURIComponent(JSON.stringify(['Comedy']))}`,
+    )
+    await screen.findByText('The Silence of the Lambs')
+
+    expect(screen.getByRole('checkbox', { name: 'Comedy' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    )
+    expect(screen.getByText('1 result')).toBeInTheDocument()
+    expect(screen.queryByText('Parasite')).not.toBeInTheDocument()
   })
 })

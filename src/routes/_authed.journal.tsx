@@ -73,6 +73,9 @@ function JournalPage() {
     (entry) => toDate(entry.dateWatched).getFullYear() === thisYear,
   ).length
   const likedCount = allEntries.filter((entry) => entry.like).length
+  const genreOptions = Array.from(
+    new Set(allEntries.flatMap((entry) => entry.movie.genre ?? [])),
+  ).sort()
   const ratedEntries = allEntries.filter((entry) => entry.rating != null)
   const avgRating =
     ratedEntries.length > 0
@@ -160,6 +163,8 @@ function JournalPage() {
             <JournalFilterBar
               liked={search.liked}
               minRating={search.minRating}
+              genre={search.genre}
+              genreOptions={genreOptions}
               sort={search.sort}
               resultsCount={entries.length}
               onLikedChange={(liked) =>
@@ -171,6 +176,12 @@ function JournalPage() {
               onMinRatingChange={(minRating) =>
                 navigate({
                   search: (prev) => ({ ...prev, minRating }),
+                  replace: true,
+                })
+              }
+              onGenreChange={(genre) =>
+                navigate({
+                  search: (prev) => ({ ...prev, genre }),
                   replace: true,
                 })
               }

@@ -1,23 +1,26 @@
 import { cn } from '#/lib/utils'
 
-// The single-choice pill button shared by every filter-bar radiogroup
-// (Liked, rating, and future Genre/Decade filters) — one place to keep
-// their look and focus styling consistent.
+// The pill button shared by every filter-bar group — single-choice ones
+// (Liked, Rating) use the default `role="radio"`; multi-select ones (Genre,
+// future Decade) pass `role="checkbox"` — one place to keep their look and
+// focus styling consistent either way.
 export function FilterPill({
   selected,
   onClick,
+  role = 'radio',
   'aria-label': ariaLabel,
   children,
 }: {
   selected: boolean
   onClick: () => void
+  role?: 'radio' | 'checkbox'
   'aria-label'?: string
   children: React.ReactNode
 }) {
   return (
     <button
       type="button"
-      role="radio"
+      role={role}
       aria-checked={selected}
       aria-label={ariaLabel}
       onClick={onClick}

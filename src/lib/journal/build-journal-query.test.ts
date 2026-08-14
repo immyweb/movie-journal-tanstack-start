@@ -88,4 +88,32 @@ describe('buildJournalQuery', () => {
     expect(plan.liked).toBe(true)
     expect(plan.minRating).toBe(4)
   })
+
+  it('applies no genre filter by default', () => {
+    const plan = buildJournalQuery({ sort: defaultJournalSort })
+
+    expect(plan.genre).toBeUndefined()
+  })
+
+  it('filters to entries matching any of the selected genres (OR within category)', () => {
+    const plan = buildJournalQuery({
+      genre: ['Comedy', 'Horror'],
+      sort: defaultJournalSort,
+    })
+
+    expect(plan.genre).toEqual(['Comedy', 'Horror'])
+  })
+
+  it('combines a genre filter with the liked and rating filters independently (AND across categories)', () => {
+    const plan = buildJournalQuery({
+      liked: true,
+      minRating: 4,
+      genre: ['Comedy'],
+      sort: 'highest-rated',
+    })
+
+    expect(plan.liked).toBe(true)
+    expect(plan.minRating).toBe(4)
+    expect(plan.genre).toEqual(['Comedy'])
+  })
 })

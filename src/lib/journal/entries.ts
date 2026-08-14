@@ -1,9 +1,18 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, desc, eq, gte, sql } from 'drizzle-orm'
+import {
+  and,
+  arrayOverlaps,
+  asc,
+  desc,
+  eq,
+  exists,
+  gte,
+  sql,
+} from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/lib/db'
-import { journalEntry } from '#/lib/db/schema'
+import { journalEntry, movie } from '#/lib/db/schema'
 import { ensureSession } from '#/lib/auth/functions'
 import { buildJournalQuery } from '#/lib/journal/build-journal-query'
 import { journalSearchSchema } from '#/lib/journal/search-params'
@@ -21,18 +30,41 @@ export const getJournalEntries = createServerFn({ method: 'GET' })
     const plan = buildJournalQuery(data)
 
     return db.query.journalEntry.findMany({
-      where: and(
-        eq(journalEntry.userId, session.user.id),
-        plan.liked === undefined
-          ? undefined
-          : eq(journalEntry.like, plan.liked),
-        // A null rating never satisfies >= N — standard SQL null semantics
-        // already give "unrated entries never match an active rating
-        // filter" (issue #1) with no special-casing needed.
-        plan.minRating === undefined
-          ? undefined
-          : gte(journalEntry.rating, plan.minRating),
-      ),
+      // Callback form so the correlated genre subquery below can reference
+      // this query's own aliased `journalEntry` (t.movieId) — the relational
+      // query API renames the primary table per-query, so the imported
+      // `journalEntry` table object doesn't match inside a subquery.
+      where: (t) =>
+        and(
+          eq(t.userId, session.user.id),
+          plan.liked === undefined ? undefined : eq(t.like, plan.liked),
+          // A null rating never satisfies >= N — standard SQL null semantics
+          // already give "unrated entries never match an active rating
+          // filter" (issue #1) with no special-casing needed.
+          plan.minRating === undefined
+            ? undefined
+            : gte(t.rating, plan.minRating),
+          // The relational query API's top-level `where` only sees
+          // journalEntry's own columns — a `with: { movie: true }` relation
+          // isn't joined into it — so genre needs a correlated EXISTS
+          // subquery rather than a direct reference to movie.genre. ANY of
+          // the selected genres matches (OR within category, via the &&
+          // "overlaps" operator), AND'd alongside Liked/Rating (AND across
+          // categories, issue #4).
+          plan.genre === undefined
+            ? undefined
+            : exists(
+                db
+                  .select({ id: sql`1` })
+                  .from(movie)
+                  .where(
+                    and(
+                      eq(movie.tmdbId, t.movieId),
+                      arrayOverlaps(movie.genre, plan.genre),
+                    ),
+                  ),
+              ),
+        ),
       with: { movie: true },
       orderBy: plan.orderBy.map(({ column, direction, nulls }) => {
         const orderedColumn = orderByColumn[column]

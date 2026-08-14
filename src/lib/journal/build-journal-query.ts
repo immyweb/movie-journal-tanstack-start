@@ -7,6 +7,10 @@ import type { JournalSearch, JournalSort } from '#/lib/journal/search-params'
 export type JournalQueryPlan = {
   liked?: boolean
   minRating?: number
+  // Matches entries whose movie has ANY of these genres (OR within this
+  // category) — a film can carry several genres, so there's no single value
+  // to require an exact match on.
+  genre?: Array<string>
   orderBy: Array<{
     column: 'dateWatched' | 'like' | 'rating'
     direction: 'asc' | 'desc'
@@ -38,6 +42,7 @@ export function buildJournalQuery(search: JournalSearch): JournalQueryPlan {
   return {
     liked: search.liked,
     minRating: search.minRating,
+    genre: search.genre,
     orderBy: orderByPreset[search.sort],
   }
 }
