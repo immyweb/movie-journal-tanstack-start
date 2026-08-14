@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, desc, eq, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '#/lib/db'
@@ -11,6 +11,7 @@ import { journalSearchSchema } from '#/lib/journal/search-params'
 const orderByColumn = {
   dateWatched: journalEntry.dateWatched,
   like: journalEntry.like,
+  rating: journalEntry.rating,
 }
 
 export const getJournalEntries = createServerFn({ method: 'GET' })
@@ -25,13 +26,23 @@ export const getJournalEntries = createServerFn({ method: 'GET' })
         plan.liked === undefined
           ? undefined
           : eq(journalEntry.like, plan.liked),
+        // A null rating never satisfies >= N — standard SQL null semantics
+        // already give "unrated entries never match an active rating
+        // filter" (issue #1) with no special-casing needed.
+        plan.minRating === undefined
+          ? undefined
+          : gte(journalEntry.rating, plan.minRating),
       ),
       with: { movie: true },
-      orderBy: plan.orderBy.map(({ column, direction }) =>
-        direction === 'asc'
-          ? asc(orderByColumn[column])
-          : desc(orderByColumn[column]),
-      ),
+      orderBy: plan.orderBy.map(({ column, direction, nulls }) => {
+        const orderedColumn = orderByColumn[column]
+        if (nulls === 'last') {
+          return direction === 'asc'
+            ? sql`${orderedColumn} asc nulls last`
+            : sql`${orderedColumn} desc nulls last`
+        }
+        return direction === 'asc' ? asc(orderedColumn) : desc(orderedColumn)
+      }),
     })
   })
 

@@ -1,4 +1,4 @@
-import { cn } from '#/lib/utils'
+import { FilterPill } from '#/components/journal/filter-pill'
 
 const OPTIONS: Array<{ value: 'all' | 'true' | 'false'; label: string }> = [
   { value: 'all', label: 'All' },
@@ -22,25 +22,17 @@ export function LikedFilter({
       </span>
       <div role="radiogroup" aria-label="Liked" className="flex gap-1.5">
         {OPTIONS.map((option) => (
-          <button
+          <FilterPill
             key={option.value}
-            type="button"
-            role="radio"
-            aria-checked={selected === option.value}
+            selected={selected === option.value}
             onClick={() =>
               onChange(
                 option.value === 'all' ? undefined : option.value === 'true',
               )
             }
-            className={cn(
-              'focus-visible:outline-lm-amber cursor-pointer rounded-full px-[14px] py-2 text-xs font-bold tracking-[0.05em] outline-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
-              selected === option.value
-                ? 'bg-lm-amber text-[#1c1408]'
-                : 'bg-lm-mist/14 text-[#9698aa] hover:bg-lm-mist/22',
-            )}
           >
             {option.label}
-          </button>
+          </FilterPill>
         ))}
       </div>
     </div>

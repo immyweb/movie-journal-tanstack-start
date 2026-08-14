@@ -47,4 +47,45 @@ describe('buildJournalQuery', () => {
       { column: 'dateWatched', direction: 'desc' },
     ])
   })
+
+  it('applies no rating filter by default', () => {
+    const plan = buildJournalQuery({ sort: defaultJournalSort })
+
+    expect(plan.minRating).toBeUndefined()
+  })
+
+  it('filters to entries rated at least the threshold', () => {
+    const plan = buildJournalQuery({ minRating: 3, sort: defaultJournalSort })
+
+    expect(plan.minRating).toBe(3)
+  })
+
+  it('accepts the threshold boundary values (1 and 5)', () => {
+    expect(
+      buildJournalQuery({ minRating: 1, sort: defaultJournalSort }).minRating,
+    ).toBe(1)
+    expect(
+      buildJournalQuery({ minRating: 5, sort: defaultJournalSort }).minRating,
+    ).toBe(5)
+  })
+
+  it('sorts highest-rated first, with unrated entries always last regardless of direction', () => {
+    const plan = buildJournalQuery({ sort: 'highest-rated' })
+
+    expect(plan.orderBy).toEqual([
+      { column: 'rating', direction: 'desc', nulls: 'last' },
+      { column: 'dateWatched', direction: 'desc' },
+    ])
+  })
+
+  it('combines a rating filter with the liked filter independently (AND across categories)', () => {
+    const plan = buildJournalQuery({
+      liked: true,
+      minRating: 4,
+      sort: 'highest-rated',
+    })
+
+    expect(plan.liked).toBe(true)
+    expect(plan.minRating).toBe(4)
+  })
 })

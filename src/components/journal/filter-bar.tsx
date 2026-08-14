@@ -1,27 +1,33 @@
 import { LikedFilter } from '#/components/journal/liked-filter'
+import { RatingFilter } from '#/components/journal/rating-filter'
 import { SortSelect } from '#/components/journal/sort-select'
 import { cn } from '#/lib/utils'
 import type { JournalSort } from '#/lib/journal/search-params'
 
 export function JournalFilterBar({
   liked,
+  minRating,
   sort,
   resultsCount,
   onLikedChange,
+  onMinRatingChange,
   onSortChange,
 }: {
   liked: boolean | undefined
+  minRating: number | undefined
   sort: JournalSort
   resultsCount: number
   onLikedChange: (value: boolean | undefined) => void
+  onMinRatingChange: (value: number | undefined) => void
   onSortChange: (value: JournalSort) => void
 }) {
-  const isFiltered = liked !== undefined
+  const isFiltered = liked !== undefined || minRating !== undefined
 
   return (
     <div className="border-lm-line bg-lm-surface/60 mx-auto mb-[26px] flex max-w-[1120px] flex-wrap items-end justify-between gap-4 rounded-xl border px-5 py-4">
       <div className="flex flex-wrap items-end gap-5">
         <LikedFilter value={liked} onChange={onLikedChange} />
+        <RatingFilter value={minRating} onChange={onMinRatingChange} />
         <SortSelect value={sort} onChange={onSortChange} />
       </div>
       {/* Always mounted (not conditionally rendered) so a screen reader's

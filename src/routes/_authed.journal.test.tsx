@@ -22,6 +22,17 @@ const notLikedEntry = {
   movie: { ...fakeMovie, tmdbId: '274', title: 'The Silence of the Lambs' },
   like: false,
 }
+const highRatedEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_1',
+  rating: 5,
+}
+const lowRatedEntry = {
+  ...fakeJournalEntry,
+  id: 'entry_2',
+  movie: { ...fakeMovie, tmdbId: '274', title: 'The Silence of the Lambs' },
+  rating: 2,
+}
 
 describe('Journal', () => {
   it('shows stats and the stub grid when entries exist', async () => {
@@ -180,5 +191,97 @@ describe('Journal', () => {
 
     const clearLink = screen.getByRole('link', { name: 'Clear filters' })
     expect(clearLink).toHaveAttribute('href', '/journal')
+  })
+
+  it('updates the URL and shows a results indicator when the rating filter is used', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.minRating === 4
+          ? [highRatedEntry]
+          : [highRatedEntry, lowRatedEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('radio', { name: '4 stars and up' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({ minRating: 4 }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { minRating: 4, sort: 'most-recently-watched' },
+    })
+    expect(await screen.findByText('1 result')).toBeInTheDocument()
+    expect(
+      screen.queryByText('The Silence of the Lambs'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('selects the Highest rated sort preset', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockResolvedValue([
+      highRatedEntry,
+      lowRatedEntry,
+    ] as never)
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.selectOptions(screen.getByLabelText('Sort by'), 'Highest rated')
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        sort: 'highest-rated',
+      }),
+    )
+    expect(await screen.findByText('Highest rated first')).toBeInTheDocument()
+  })
+
+  it('combines the rating filter with the Liked filter using AND', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.liked === true && data.minRating === 4
+          ? [highRatedEntry]
+          : [highRatedEntry, lowRatedEntry]) as never,
+    )
+
+    const { router } = await renderAuthedRoute('/journal')
+    await screen.findByText('Parasite')
+
+    await user.click(screen.getByRole('radio', { name: 'Liked' }))
+    await user.click(screen.getByRole('radio', { name: '4 stars and up' }))
+
+    await waitFor(() =>
+      expect(router.state.location.search).toEqual({
+        liked: true,
+        minRating: 4,
+      }),
+    )
+    expect(vi.mocked(getJournalEntries)).toHaveBeenCalledWith({
+      data: { liked: true, minRating: 4, sort: 'most-recently-watched' },
+    })
+  })
+
+  it('reproduces a rating-filtered view when loading its URL directly', async () => {
+    vi.mocked(getJournalEntries).mockImplementation(
+      async ({ data }) =>
+        (data.minRating === 4
+          ? [highRatedEntry]
+          : [highRatedEntry, lowRatedEntry]) as never,
+    )
+
+    await renderAuthedRoute('/journal?minRating=4')
+    await screen.findByText('Parasite')
+
+    expect(
+      screen.getByRole('radio', { name: '4 stars and up' }),
+    ).toHaveAttribute('aria-checked', 'true')
+    expect(screen.getByText('1 result')).toBeInTheDocument()
+    expect(
+      screen.queryByText('The Silence of the Lambs'),
+    ).not.toBeInTheDocument()
   })
 })

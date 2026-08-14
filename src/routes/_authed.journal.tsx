@@ -52,6 +52,8 @@ function sortSectionLabel(sort: JournalSort) {
       return 'Oldest watched first'
     case 'liked-first':
       return 'Liked films first'
+    case 'highest-rated':
+      return 'Highest rated first'
     case 'most-recently-watched':
       return 'In order of last seen'
   }
@@ -157,11 +159,18 @@ function JournalPage() {
           <div className="mx-auto mb-[26px] max-w-[1120px]">
             <JournalFilterBar
               liked={search.liked}
+              minRating={search.minRating}
               sort={search.sort}
               resultsCount={entries.length}
               onLikedChange={(liked) =>
                 navigate({
                   search: (prev) => ({ ...prev, liked }),
+                  replace: true,
+                })
+              }
+              onMinRatingChange={(minRating) =>
+                navigate({
+                  search: (prev) => ({ ...prev, minRating }),
                   replace: true,
                 })
               }
