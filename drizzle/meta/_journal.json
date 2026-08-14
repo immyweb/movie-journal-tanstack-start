@@ -15,6 +15,13 @@
       "when": 1786717697759,
       "tag": "0001_aberrant_bulldozer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786726582007,
+      "tag": "0002_even_spacker_dave",
+      "breakpoints": true
     }
   ]
 }

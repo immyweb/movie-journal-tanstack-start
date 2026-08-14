@@ -58,3 +58,19 @@ _Avoid_: Edit a movie, Edit entry, Update entry
 **Delete a film**:
 The action of permanently removing a JournalEntry, including its rating, review, and like status. Does not remove the underlying Movie cache row (ADR 0010). Reached from the Edit a film form, behind a warning-and-confirm step.
 _Avoid_: Delete a movie, Delete entry, Remove entry
+
+**List**:
+A user's named, single-owner collection of Movies, distinct from a Journal — it carries no per-user watch data (no rating, review, dateWatched). A Movie can appear on a List at most once. Shared publicly via a Share link; always live (a viewer sees the List's current state, never a frozen snapshot).
+_Avoid_: Watchlist, Playlist, Collection
+
+**ListItem**:
+One Movie's membership on a List, recording when it was added. Distinct from JournalEntry: it references a Movie directly, not a user's personal watch record of one.
+_Avoid_: ListEntry
+
+**Share token**:
+The unguessable value stored on a List that a Share link is built from. Not the List's database id — a separate value specifically so a List's public URL doesn't expose or make its internal id enumerable.
+_Avoid_: Share id, Slug
+
+**Share link**:
+The public URL a List's owner distributes to let others view it, built from the List's Share token. Viewable while signed out.
+_Avoid_: Share URL, Public link
