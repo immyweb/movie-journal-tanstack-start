@@ -11,12 +11,14 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as PublicRouteImport } from './routes/_public'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthedJournalRouteImport } from './routes/_authed.journal'
 import { Route as AuthedListsRouteImport } from './routes/_authed.lists'
 import { Route as AuthedJournalEntryIdRouteImport } from './routes/_authed.journal_.$entryId'
 import { Route as AuthedJournalNewRouteImport } from './routes/_authed.journal_.new'
+import { Route as PublicListsShareTokenRouteImport } from './routes/_public.lists.$shareToken'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthedJournalEntryIdEditRouteImport } from './routes/_authed.journal_.$entryId_.edit'
 
@@ -27,6 +29,10 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PublicRoute = PublicRouteImport.update({
+  id: '/_public',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -59,6 +65,11 @@ const AuthedJournalNewRoute = AuthedJournalNewRouteImport.update({
   path: '/journal/new',
   getParentRoute: () => AuthedRoute,
 } as any)
+const PublicListsShareTokenRoute = PublicListsShareTokenRouteImport.update({
+  id: '/lists/$shareToken',
+  path: '/lists/$shareToken',
+  getParentRoute: () => PublicRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -79,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/lists': typeof AuthedListsRoute
   '/journal/$entryId': typeof AuthedJournalEntryIdRoute
   '/journal/new': typeof AuthedJournalNewRoute
+  '/lists/$shareToken': typeof PublicListsShareTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/journal/$entryId/edit': typeof AuthedJournalEntryIdEditRoute
 }
@@ -90,6 +102,7 @@ export interface FileRoutesByTo {
   '/lists': typeof AuthedListsRoute
   '/journal/$entryId': typeof AuthedJournalEntryIdRoute
   '/journal/new': typeof AuthedJournalNewRoute
+  '/lists/$shareToken': typeof PublicListsShareTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/journal/$entryId/edit': typeof AuthedJournalEntryIdEditRoute
 }
@@ -97,12 +110,14 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/_public': typeof PublicRouteWithChildren
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/_authed/journal': typeof AuthedJournalRoute
   '/_authed/lists': typeof AuthedListsRoute
   '/_authed/journal_/$entryId': typeof AuthedJournalEntryIdRoute
   '/_authed/journal_/new': typeof AuthedJournalNewRoute
+  '/_public/lists/$shareToken': typeof PublicListsShareTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authed/journal_/$entryId_/edit': typeof AuthedJournalEntryIdEditRoute
 }
@@ -116,6 +131,7 @@ export interface FileRouteTypes {
     | '/lists'
     | '/journal/$entryId'
     | '/journal/new'
+    | '/lists/$shareToken'
     | '/api/auth/$'
     | '/journal/$entryId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -127,18 +143,21 @@ export interface FileRouteTypes {
     | '/lists'
     | '/journal/$entryId'
     | '/journal/new'
+    | '/lists/$shareToken'
     | '/api/auth/$'
     | '/journal/$entryId/edit'
   id:
     | '__root__'
     | '/'
     | '/_authed'
+    | '/_public'
     | '/register'
     | '/sign-in'
     | '/_authed/journal'
     | '/_authed/lists'
     | '/_authed/journal_/$entryId'
     | '/_authed/journal_/new'
+    | '/_public/lists/$shareToken'
     | '/api/auth/$'
     | '/_authed/journal_/$entryId_/edit'
   fileRoutesById: FileRoutesById
@@ -146,6 +165,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   SignInRoute: typeof SignInRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -165,6 +185,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_public': {
+      id: '/_public'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -209,6 +236,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedJournalNewRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_public/lists/$shareToken': {
+      id: '/_public/lists/$shareToken'
+      path: '/lists/$shareToken'
+      fullPath: '/lists/$shareToken'
+      preLoaderRoute: typeof PublicListsShareTokenRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -245,9 +279,21 @@ const AuthedRouteChildren: AuthedRouteChildren = {
 const AuthedRouteWithChildren =
   AuthedRoute._addFileChildren(AuthedRouteChildren)
 
+interface PublicRouteChildren {
+  PublicListsShareTokenRoute: typeof PublicListsShareTokenRoute
+}
+
+const PublicRouteChildren: PublicRouteChildren = {
+  PublicListsShareTokenRoute: PublicListsShareTokenRoute,
+}
+
+const PublicRouteWithChildren =
+  PublicRoute._addFileChildren(PublicRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
+  PublicRoute: PublicRouteWithChildren,
   RegisterRoute: RegisterRoute,
   SignInRoute: SignInRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
