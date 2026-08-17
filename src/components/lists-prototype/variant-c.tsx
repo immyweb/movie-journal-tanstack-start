@@ -337,7 +337,7 @@ function ManageOverlay({
         )}
 
         {picker.results.length > 0 && (
-          <ul className="mt-2 max-h-[240px] space-y-1 overflow-y-auto">
+          <ul className="mt-3 max-h-[360px] space-y-1.5 overflow-y-auto">
             {picker.results.map((movie) => {
               const added = alreadyAdded.has(movie.tmdbId)
               return (
@@ -346,9 +346,9 @@ function ManageOverlay({
                     type="button"
                     disabled={added}
                     onClick={() => onAdd(movie)}
-                    className="hover:bg-lm-surface focus-visible:outline-lm-amber flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
+                    className="hover:bg-lm-surface focus-visible:outline-lm-amber flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left outline-none focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
                   >
-                    <span className="bg-lm-surface flex size-8 shrink-0 items-center justify-center overflow-hidden rounded">
+                    <span className="bg-lm-surface flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md">
                       {movie.posterUrl ? (
                         <img
                           src={movie.posterUrl}
@@ -356,20 +356,20 @@ function ManageOverlay({
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <Film aria-hidden="true" size={13} />
+                        <Film aria-hidden="true" size={20} />
                       )}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-bold">
+                      <span className="block truncate text-[16px] font-bold">
                         {movie.title}
                       </span>
-                      <span className="text-lm-mist block text-[11px]">
+                      <span className="text-lm-mist block text-[13.5px]">
                         {added
                           ? 'Already in list'
                           : formatReleaseYear(movie.releaseDate)}
                       </span>
                     </span>
-                    {!added && <Plus aria-hidden="true" size={14} />}
+                    {!added && <Plus aria-hidden="true" size={18} />}
                   </button>
                 </li>
               )
