@@ -31,6 +31,10 @@ _Avoid_: The API, the movie API
 **User**:
 An account holder, authenticated via Better Auth. Owns zero or more JournalEntries.
 
+**Username**:
+A unique, lowercase handle a User can optionally set on their account, used as the lookup key for their Public Journal's link. Collection is deferred until a User first needs a public URL — making their Journal public, or creating their first List. Distinct from the User's display name, which preserves their original casing for on-screen display and carries no uniqueness constraint.
+_Avoid_: Handle, slug, display name
+
 **Register**:
 The action of creating a new User account by submitting a name, email, and password.
 _Avoid_: Sign up, Create account
@@ -74,3 +78,7 @@ _Avoid_: Share id, Slug
 **Share link**:
 The public URL a List's owner distributes to let others view it, built from the List's Share token. Viewable while signed out.
 _Avoid_: Share URL, Public link
+
+**Public Journal**:
+A User's existing Journal made viewable via direct link once they opt in. Shows the full JournalEntry — rating, review, like status, dateWatched — with no redaction. Can only be enabled once the User has a Username, since that's what the public link is keyed on. Viewable while signed out.
+_Avoid_: Public profile, shared journal
