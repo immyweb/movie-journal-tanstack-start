@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Film, Plus, Trash2, X } from 'lucide-react'
 
 import { formatReleaseYear } from '#/lib/format-release-year'
+import { cn } from '#/lib/utils'
 import { AuthField } from '#/components/auth-field'
 import { TextareaField } from '#/components/textarea-field'
 import { ErrorBanner } from '#/components/error-banner'
@@ -15,10 +16,10 @@ import type {
 export const variantCName = 'Card hub + overlay'
 
 // C — a grid of List cards is the whole page; management happens in a
-// full-screen overlay rather than inline or in a side panel. Inside the
-// overlay, TMDB and journal results sit in two permanent side-by-side
-// columns instead of a source toggle — both are always searchable at
-// once, which is the structural bet this variant is testing.
+// full-screen overlay rather than inline or in a side panel. Post-review:
+// the overlay's add-movie picker was reworked to B's underline-tab, one-
+// source-at-a-time pattern (issue #13's chosen combination) — dropped the
+// original two-permanent-columns layout.
 export function VariantC({
   state,
   journalMovies,
@@ -238,8 +239,7 @@ function ManageOverlay({
   onDelete: () => void
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const tmdbPicker = useMoviePicker(journalMovies, 'tmdb')
-  const journalPicker = useMoviePicker(journalMovies, 'journal')
+  const picker = useMoviePicker(journalMovies)
   const alreadyAdded = new Set(list.items.map((item) => item.movie.tmdbId))
 
   return (
@@ -287,19 +287,95 @@ function ManageOverlay({
         </div>
       )}
 
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <PickerColumn
-          label="Search TMDB"
-          picker={tmdbPicker}
-          alreadyAdded={alreadyAdded}
-          onAdd={onAdd}
+      <div className="mt-6">
+        <div className="mb-3 flex border-b border-[#33344294]">
+          <button
+            type="button"
+            onClick={() => picker.setSource('tmdb')}
+            className={cn(
+              'font-lm-mono flex-1 cursor-pointer border-b-2 py-2.5 text-[11.5px] font-bold tracking-[0.06em] uppercase',
+              picker.source === 'tmdb'
+                ? 'border-lm-amber text-lm-amber'
+                : 'text-lm-mist hover:text-lm-paper border-transparent',
+            )}
+          >
+            Search TMDB
+          </button>
+          <button
+            type="button"
+            onClick={() => picker.setSource('journal')}
+            className={cn(
+              'font-lm-mono flex-1 cursor-pointer border-b-2 py-2.5 text-[11.5px] font-bold tracking-[0.06em] uppercase',
+              picker.source === 'journal'
+                ? 'border-lm-amber text-lm-amber'
+                : 'text-lm-mist hover:text-lm-paper border-transparent',
+            )}
+          >
+            From your journal
+          </button>
+        </div>
+
+        <AuthField
+          id="overlay-add-movie"
+          label={
+            picker.source === 'tmdb' ? 'Search TMDB' : 'Search your journal'
+          }
+          type="search"
+          placeholder="Try “The Matrix”"
+          value={picker.query}
+          onChange={(event) => picker.setQuery(event.target.value)}
         />
-        <PickerColumn
-          label="From your journal"
-          picker={journalPicker}
-          alreadyAdded={alreadyAdded}
-          onAdd={onAdd}
-        />
+        {picker.searchError && (
+          <div className="mt-2">
+            <ErrorBanner>{picker.searchError}</ErrorBanner>
+          </div>
+        )}
+        {picker.isSearching && (
+          <p className="text-lm-mist font-lm-mono mt-2 text-[11px] tracking-[0.06em] uppercase">
+            Searching…
+          </p>
+        )}
+
+        {picker.results.length > 0 && (
+          <ul className="mt-2 max-h-[240px] space-y-1 overflow-y-auto">
+            {picker.results.map((movie) => {
+              const added = alreadyAdded.has(movie.tmdbId)
+              return (
+                <li key={movie.tmdbId}>
+                  <button
+                    type="button"
+                    disabled={added}
+                    onClick={() => onAdd(movie)}
+                    className="hover:bg-lm-surface focus-visible:outline-lm-amber flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
+                  >
+                    <span className="bg-lm-surface flex size-8 shrink-0 items-center justify-center overflow-hidden rounded">
+                      {movie.posterUrl ? (
+                        <img
+                          src={movie.posterUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Film aria-hidden="true" size={13} />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-bold">
+                        {movie.title}
+                      </span>
+                      <span className="text-lm-mist block text-[11px]">
+                        {added
+                          ? 'Already in list'
+                          : formatReleaseYear(movie.releaseDate)}
+                      </span>
+                    </span>
+                    {!added && <Plus aria-hidden="true" size={14} />}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
 
       <div className="mt-6">
@@ -347,81 +423,5 @@ function ManageOverlay({
         )}
       </div>
     </OverlayShell>
-  )
-}
-
-function PickerColumn({
-  label,
-  picker,
-  alreadyAdded,
-  onAdd,
-}: {
-  label: string
-  picker: ReturnType<typeof useMoviePicker>
-  alreadyAdded: Set<string>
-  onAdd: (movie: PickerMovie) => void
-}) {
-  return (
-    <div className="border-lm-line rounded-lg border p-3">
-      <div className="text-lm-mist font-lm-mono mb-2 text-[10.5px] font-bold tracking-[0.06em] uppercase">
-        {label}
-      </div>
-      <AuthField
-        id={`overlay-picker-${label}`}
-        label="Search"
-        type="search"
-        placeholder="Try “The Matrix”"
-        value={picker.query}
-        onChange={(event) => picker.setQuery(event.target.value)}
-      />
-      {picker.searchError && (
-        <div className="mt-2">
-          <ErrorBanner>{picker.searchError}</ErrorBanner>
-        </div>
-      )}
-      {picker.isSearching && (
-        <p className="text-lm-mist font-lm-mono mt-2 text-[11px] tracking-[0.06em] uppercase">
-          Searching…
-        </p>
-      )}
-      <ul className="mt-2 max-h-[220px] space-y-1 overflow-y-auto">
-        {picker.results.map((movie) => {
-          const added = alreadyAdded.has(movie.tmdbId)
-          return (
-            <li key={movie.tmdbId}>
-              <button
-                type="button"
-                disabled={added}
-                onClick={() => onAdd(movie)}
-                className="hover:bg-lm-surface focus-visible:outline-lm-amber flex w-full cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
-              >
-                <span className="bg-lm-surface flex size-7 shrink-0 items-center justify-center overflow-hidden rounded">
-                  {movie.posterUrl ? (
-                    <img
-                      src={movie.posterUrl}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <Film aria-hidden="true" size={12} />
-                  )}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-bold">
-                    {movie.title}
-                  </span>
-                  <span className="text-lm-mist block text-[10.5px]">
-                    {added
-                      ? 'Already in list'
-                      : formatReleaseYear(movie.releaseDate)}
-                  </span>
-                </span>
-                {!added && <Plus aria-hidden="true" size={13} />}
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
   )
 }
