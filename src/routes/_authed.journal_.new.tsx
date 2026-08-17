@@ -3,6 +3,7 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { Film } from 'lucide-react'
 
 import { formatReleaseYear } from '#/lib/format-release-year'
+import { useDebouncedValue } from '#/lib/use-debounced-value'
 import { type LogFilmFormInput } from '#/lib/validation/journal-entry'
 import { searchMovies, type MovieSearchResult } from '#/lib/tmdb/search'
 import { getWatchCount } from '#/lib/journal/entries'
@@ -17,17 +18,6 @@ export const Route = createFileRoute('/_authed/journal_/new')({
   }),
   component: NewEntryPage,
 })
-
-function useDebouncedValue<T>(value: T, delayMs: number) {
-  const [debounced, setDebounced] = useState(value)
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setDebounced(value), delayMs)
-    return () => clearTimeout(timeout)
-  }, [value, delayMs])
-
-  return debounced
-}
 
 function todayLocalISODate() {
   const now = new Date()

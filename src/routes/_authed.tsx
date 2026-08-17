@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { Link, Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 
 import { getSession } from '#/lib/auth/functions'
 import { SiteHeader } from '#/components/site-header'
@@ -26,7 +26,20 @@ function AuthedLayout() {
   return (
     <div className="bg-lm-ink font-lm-sans text-lm-paper min-h-screen antialiased">
       <div className="relative z-20">
-        <SiteHeader homeTo="/journal" action={<SignOutButton />} />
+        <SiteHeader
+          homeTo="/journal"
+          action={
+            <div className="flex items-center gap-4">
+              <Link
+                to="/lists"
+                className="text-lm-paper hover:text-lm-amber focus-visible:outline-lm-amber text-sm font-bold outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Your lists
+              </Link>
+              <SignOutButton />
+            </div>
+          }
+        />
         <MarqueeBulbs />
       </div>
       <main>
