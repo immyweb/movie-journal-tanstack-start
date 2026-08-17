@@ -14,6 +14,7 @@ import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as AuthedJournalRouteImport } from './routes/_authed.journal'
+import { Route as AuthedSettingsPrototypeRouteImport } from './routes/_authed.settings-prototype'
 import { Route as AuthedJournalEntryIdRouteImport } from './routes/_authed.journal_.$entryId'
 import { Route as AuthedJournalNewRouteImport } from './routes/_authed.journal_.new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -43,6 +44,11 @@ const AuthedJournalRoute = AuthedJournalRouteImport.update({
   path: '/journal',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedSettingsPrototypeRoute = AuthedSettingsPrototypeRouteImport.update({
+  id: '/settings-prototype',
+  path: '/settings-prototype',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedJournalEntryIdRoute = AuthedJournalEntryIdRouteImport.update({
   id: '/journal_/$entryId',
   path: '/journal/$entryId',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/journal': typeof AuthedJournalRoute
+  '/settings-prototype': typeof AuthedSettingsPrototypeRoute
   '/journal/$entryId': typeof AuthedJournalEntryIdRoute
   '/journal/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/journal': typeof AuthedJournalRoute
+  '/settings-prototype': typeof AuthedSettingsPrototypeRoute
   '/journal/$entryId': typeof AuthedJournalEntryIdRoute
   '/journal/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/sign-in': typeof SignInRoute
   '/_authed/journal': typeof AuthedJournalRoute
+  '/_authed/settings-prototype': typeof AuthedSettingsPrototypeRoute
   '/_authed/journal_/$entryId': typeof AuthedJournalEntryIdRoute
   '/_authed/journal_/new': typeof AuthedJournalNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -104,6 +113,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/sign-in'
     | '/journal'
+    | '/settings-prototype'
     | '/journal/$entryId'
     | '/journal/new'
     | '/api/auth/$'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/sign-in'
     | '/journal'
+    | '/settings-prototype'
     | '/journal/$entryId'
     | '/journal/new'
     | '/api/auth/$'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/sign-in'
     | '/_authed/journal'
+    | '/_authed/settings-prototype'
     | '/_authed/journal_/$entryId'
     | '/_authed/journal_/new'
     | '/api/auth/$'
@@ -176,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedJournalRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/settings-prototype': {
+      id: '/_authed/settings-prototype'
+      path: '/settings-prototype'
+      fullPath: '/settings-prototype'
+      preLoaderRoute: typeof AuthedSettingsPrototypeRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/journal_/$entryId': {
       id: '/_authed/journal_/$entryId'
       path: '/journal/$entryId'
@@ -209,6 +228,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedJournalRoute: typeof AuthedJournalRoute
+  AuthedSettingsPrototypeRoute: typeof AuthedSettingsPrototypeRoute
   AuthedJournalEntryIdRoute: typeof AuthedJournalEntryIdRoute
   AuthedJournalNewRoute: typeof AuthedJournalNewRoute
   AuthedJournalEntryIdEditRoute: typeof AuthedJournalEntryIdEditRoute
@@ -216,6 +236,7 @@ interface AuthedRouteChildren {
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedJournalRoute: AuthedJournalRoute,
+  AuthedSettingsPrototypeRoute: AuthedSettingsPrototypeRoute,
   AuthedJournalEntryIdRoute: AuthedJournalEntryIdRoute,
   AuthedJournalNewRoute: AuthedJournalNewRoute,
   AuthedJournalEntryIdEditRoute: AuthedJournalEntryIdEditRoute,
