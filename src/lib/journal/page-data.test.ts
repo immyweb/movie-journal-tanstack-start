@@ -1,18 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { fakeJournalEntry, fakeMovie } from '#/test/fixtures/journal'
-import { getJournalEntries } from '#/lib/journal/entries'
-import { loadJournalPageData } from '#/lib/journal/page-data'
+import { findJournalEntries } from '#/lib/journal/entries'
+import { loadJournalPageDataForUser } from '#/lib/journal/page-data'
 
 vi.mock('#/lib/journal/entries', () => ({
-  getJournalEntries: vi.fn(),
+  findJournalEntries: vi.fn(),
 }))
 
-describe('loadJournalPageData', () => {
+const userId = 'user_1'
+
+describe('loadJournalPageDataForUser', () => {
   it('derives genre and decade options from the unfiltered entry set, sorted', async () => {
-    vi.mocked(getJournalEntries).mockImplementation(
-      async ({ data }) =>
-        (data.genre || data.decade
+    vi.mocked(findJournalEntries).mockImplementation(
+      async (_userId, search) =>
+        (search.genre || search.decade
           ? []
           : [
               {
@@ -42,7 +44,9 @@ describe('loadJournalPageData', () => {
             ]) as never,
     )
 
-    const result = await loadJournalPageData({ sort: 'most-recently-watched' })
+    const result = await loadJournalPageDataForUser(userId, {
+      sort: 'most-recently-watched',
+    })
 
     expect(result.genreOptions).toEqual(['Crime', 'Drama', 'Thriller'])
     expect(result.decadeOptions).toEqual([1990, 2010])
@@ -50,9 +54,9 @@ describe('loadJournalPageData', () => {
 
   it('computes stats from the unfiltered entry set regardless of the active filter', async () => {
     const thisYear = new Date().getFullYear()
-    vi.mocked(getJournalEntries).mockImplementation(
-      async ({ data }) =>
-        (data.liked === true
+    vi.mocked(findJournalEntries).mockImplementation(
+      async (_userId, search) =>
+        (search.liked === true
           ? [{ ...fakeJournalEntry, id: 'entry_1', like: true, rating: 5 }]
           : [
               {
@@ -73,7 +77,7 @@ describe('loadJournalPageData', () => {
             ]) as never,
     )
 
-    const result = await loadJournalPageData({
+    const result = await loadJournalPageDataForUser(userId, {
       liked: true,
       sort: 'most-recently-watched',
     })
@@ -87,19 +91,21 @@ describe('loadJournalPageData', () => {
   })
 
   it('reports avgRating as null when no entries are rated', async () => {
-    vi.mocked(getJournalEntries).mockResolvedValue([
+    vi.mocked(findJournalEntries).mockResolvedValue([
       { ...fakeJournalEntry, id: 'entry_1', rating: null },
     ] as never)
 
-    const result = await loadJournalPageData({ sort: 'most-recently-watched' })
+    const result = await loadJournalPageDataForUser(userId, {
+      sort: 'most-recently-watched',
+    })
 
     expect(result.stats.avgRating).toBeNull()
   })
 
   it('returns the filtered call as entries, distinct from the unfiltered facet/stat call', async () => {
-    vi.mocked(getJournalEntries).mockImplementation(
-      async ({ data }) =>
-        (data.liked === true
+    vi.mocked(findJournalEntries).mockImplementation(
+      async (_userId, search) =>
+        (search.liked === true
           ? [{ ...fakeJournalEntry, id: 'entry_1', like: true }]
           : [
               { ...fakeJournalEntry, id: 'entry_1', like: true },
@@ -112,12 +118,30 @@ describe('loadJournalPageData', () => {
             ]) as never,
     )
 
-    const result = await loadJournalPageData({
+    const result = await loadJournalPageDataForUser(userId, {
       liked: true,
       sort: 'most-recently-watched',
     })
 
     expect(result.entries).toHaveLength(1)
     expect(result.stats.totalCount).toBe(2)
+  })
+
+  it('scopes both the facet/stat call and the filtered call to the given userId', async () => {
+    vi.mocked(findJournalEntries).mockResolvedValue([] as never)
+
+    await loadJournalPageDataForUser(userId, {
+      liked: true,
+      sort: 'earliest-watched',
+    })
+
+    // Two distinct calls (unfiltered facets/stats vs. the active filter) —
+    // asserted independently by position, not just "some call matched",
+    // so a regression that scopes either one to the wrong userId is caught
+    // even if the other call happens to still match.
+    expect(vi.mocked(findJournalEntries).mock.calls).toEqual([
+      [userId, { sort: 'most-recently-watched' }],
+      [userId, { liked: true, sort: 'earliest-watched' }],
+    ])
   })
 })

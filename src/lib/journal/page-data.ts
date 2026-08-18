@@ -1,11 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { getDecade } from '#/lib/journal/decade'
-import { getJournalEntries } from '#/lib/journal/entries'
+import { findJournalEntries } from '#/lib/journal/entries'
+import { ensureSession } from '#/lib/auth/functions'
 import {
   journalSearchSchema,
   type JournalSearch,
 } from '#/lib/journal/search-params'
+import { defaultJournalSort } from '#/lib/journal/sort'
 import { toDate } from '#/lib/format-date-watched'
 
 export type JournalStats = {
@@ -15,21 +17,25 @@ export type JournalStats = {
   avgRating: number | null
 }
 
-// Composes the Journal route's two getJournalEntries queries (unfiltered,
-// for facets/stats; filtered, for the displayed list) so the client makes a
-// single round trip instead of two. getJournalEntries itself stays a plain
-// "matching entries" interface — this is a separate module rather than a
-// second responsibility bolted onto it, so any other future caller of
-// getJournalEntries isn't forced to also pay for facet/stat derivation.
+// Composes findJournalEntries's two calls (unfiltered, for facets/stats;
+// filtered, for the displayed list) so a caller makes one round trip
+// instead of two. findJournalEntries itself stays a plain "matching
+// entries" interface — this is a separate module rather than a second
+// responsibility bolted onto it, so any other future caller of
+// findJournalEntries isn't forced to also pay for facet/stat derivation.
 //
-// Kept as a plain function, with getJournalPageData below as a thin
-// createServerFn wrapper around it, so the derivation logic is callable
-// directly in tests — createServerFn's wrapped export only runs inside the
-// Start server runtime (see ADR 0011's note on calling handlers directly).
-export async function loadJournalPageData(search: JournalSearch) {
+// userId-parameterized so it's the shared core for both the authenticated
+// Journal (getJournalPageData below, via ensureSession()) and the
+// signed-out public Journal view (ADR 0015), which resolves userId from a
+// username instead. Kept as a plain function, callable directly in tests —
+// see ADR 0011's note on createServerFn handlers needing request context.
+export async function loadJournalPageDataForUser(
+  userId: string,
+  search: JournalSearch,
+) {
   const [allEntries, entries] = await Promise.all([
-    getJournalEntries({ data: {} }),
-    getJournalEntries({ data: search }),
+    findJournalEntries(userId, { sort: defaultJournalSort }),
+    findJournalEntries(userId, search),
   ])
 
   const thisYear = new Date().getFullYear()
@@ -65,4 +71,7 @@ export async function loadJournalPageData(search: JournalSearch) {
 
 export const getJournalPageData = createServerFn({ method: 'GET' })
   .validator(journalSearchSchema)
-  .handler(async ({ data }) => loadJournalPageData(data))
+  .handler(async ({ data }) => {
+    const session = await ensureSession()
+    return loadJournalPageDataForUser(session.user.id, data)
+  })

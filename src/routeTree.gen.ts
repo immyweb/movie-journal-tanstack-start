@@ -22,6 +22,7 @@ import { Route as AuthedJournalNewRouteImport } from './routes/_authed.journal_.
 import { Route as PublicListsShareTokenRouteImport } from './routes/_public.lists.$shareToken'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthedJournalEntryIdEditRouteImport } from './routes/_authed.journal_.$entryId_.edit'
+import { Route as PublicJournalUUsernameRouteImport } from './routes/_public.journal.u.$username'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -87,6 +88,11 @@ const AuthedJournalEntryIdEditRoute =
     path: '/journal/$entryId/edit',
     getParentRoute: () => AuthedRoute,
   } as any)
+const PublicJournalUUsernameRoute = PublicJournalUUsernameRouteImport.update({
+  id: '/journal/u/$username',
+  path: '/journal/u/$username',
+  getParentRoute: () => PublicRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -100,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/lists/$shareToken': typeof PublicListsShareTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/journal/$entryId/edit': typeof AuthedJournalEntryIdEditRoute
+  '/journal/u/$username': typeof PublicJournalUUsernameRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByTo {
   '/lists/$shareToken': typeof PublicListsShareTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/journal/$entryId/edit': typeof AuthedJournalEntryIdEditRoute
+  '/journal/u/$username': typeof PublicJournalUUsernameRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -129,6 +137,7 @@ export interface FileRoutesById {
   '/_public/lists/$shareToken': typeof PublicListsShareTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authed/journal_/$entryId_/edit': typeof AuthedJournalEntryIdEditRoute
+  '/_public/journal/u/$username': typeof PublicJournalUUsernameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/lists/$shareToken'
     | '/api/auth/$'
     | '/journal/$entryId/edit'
+    | '/journal/u/$username'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/lists/$shareToken'
     | '/api/auth/$'
     | '/journal/$entryId/edit'
+    | '/journal/u/$username'
   id:
     | '__root__'
     | '/'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_public/lists/$shareToken'
     | '/api/auth/$'
     | '/_authed/journal_/$entryId_/edit'
+    | '/_public/journal/u/$username'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -276,6 +288,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedJournalEntryIdEditRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_public/journal/u/$username': {
+      id: '/_public/journal/u/$username'
+      path: '/journal/u/$username'
+      fullPath: '/journal/u/$username'
+      preLoaderRoute: typeof PublicJournalUUsernameRouteImport
+      parentRoute: typeof PublicRoute
+    }
   }
 }
 
@@ -302,10 +321,12 @@ const AuthedRouteWithChildren =
 
 interface PublicRouteChildren {
   PublicListsShareTokenRoute: typeof PublicListsShareTokenRoute
+  PublicJournalUUsernameRoute: typeof PublicJournalUUsernameRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
   PublicListsShareTokenRoute: PublicListsShareTokenRoute,
+  PublicJournalUUsernameRoute: PublicJournalUUsernameRoute,
 }
 
 const PublicRouteWithChildren =
