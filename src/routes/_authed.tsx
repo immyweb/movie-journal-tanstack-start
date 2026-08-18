@@ -36,6 +36,12 @@ function AuthedLayout() {
               >
                 Your lists
               </Link>
+              <Link
+                to="/settings"
+                className="text-lm-paper hover:text-lm-amber focus-visible:outline-lm-amber text-sm font-bold outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                Settings
+              </Link>
               <SignOutButton />
             </div>
           }

@@ -10,6 +10,14 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('email_verified').default(false).notNull(),
   image: text('image'),
+  // Added by Better Auth's `username` plugin (src/lib/auth/index.ts) — hand-
+  // added here to match the columns the plugin expects (ADR 0014). Nullable:
+  // username collection is deferred until a user first needs a public URL.
+  username: text('username').unique(),
+  displayUsername: text('display_username'),
+  // May only be true when `username` is non-null — an app-level invariant
+  // (ADR 0014) enforced at the mutation layer (src/lib/settings/), not here.
+  journalIsPublic: boolean('journal_is_public').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
