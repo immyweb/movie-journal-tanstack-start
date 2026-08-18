@@ -1,4 +1,4 @@
-import { createServerFn } from '@tanstack/react-start'
+import { createServerFn, createServerOnlyFn } from '@tanstack/react-start'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -32,22 +32,21 @@ export function resolvePublicJournalOwner(
 // stray whitespace) still resolves. Kept as a plain function, callable
 // directly in tests — see ADR 0011's note on createServerFn handlers
 // needing request context.
-export async function loadPublicJournal(
-  username: string,
-  search: JournalSearch,
-) {
-  const found = await db.query.user.findFirst({
-    where: eq(user.username, username.trim().toLowerCase()),
-    columns: { id: true, name: true, journalIsPublic: true },
-  })
+export const loadPublicJournal = createServerOnlyFn(
+  async function loadPublicJournal(username: string, search: JournalSearch) {
+    const found = await db.query.user.findFirst({
+      where: eq(user.username, username.trim().toLowerCase()),
+      columns: { id: true, name: true, journalIsPublic: true },
+    })
 
-  const owner = resolvePublicJournalOwner(found)
-  if (!owner) return null
+    const owner = resolvePublicJournalOwner(found)
+    if (!owner) return null
 
-  const pageData = await loadJournalPageDataForUser(owner.id, search)
+    const pageData = await loadJournalPageDataForUser(owner.id, search)
 
-  return { ownerName: owner.name, ...pageData }
-}
+    return { ownerName: owner.name, ...pageData }
+  },
+)
 
 export const getPublicJournal = createServerFn({ method: 'GET' })
   .validator(
