@@ -1,7 +1,12 @@
 import { useState } from 'react'
-import { useRouter } from '@tanstack/react-router'
 
 import { createList } from '#/lib/lists/create-list'
+import type { ListWithItems } from '#/lib/lists/lists'
+import { useRefreshAfterMutation } from '#/lib/lists/use-refresh-after-mutation'
+import {
+  LIST_DESCRIPTION_MAX_LENGTH,
+  LIST_NAME_MAX_LENGTH,
+} from '#/lib/validation/list'
 import { AuthField } from '#/components/auth-field'
 import { TextareaField } from '#/components/textarea-field'
 import { ErrorBanner } from '#/components/error-banner'
@@ -12,9 +17,9 @@ export function CreateListOverlay({
   onCreated,
 }: {
   onCancel: () => void
-  onCreated: (listId: string) => void
+  onCreated: (created: ListWithItems) => void
 }) {
-  const router = useRouter()
+  const refreshAfterMutation = useRefreshAfterMutation()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -46,15 +51,11 @@ export function CreateListOverlay({
       return
     }
 
-    // Invalidation runs after the create already succeeded — a failure here
-    // (e.g. a transient network blip on the refetch) must not be reported as
-    // "creating the list failed".
-    try {
-      await router.invalidate()
-    } catch {
-      // Stale until the next interaction re-triggers a load.
-    }
-    onCreated(created.id)
+    // onCreated gets the created list directly rather than just its id, so
+    // the manage overlay can still open even if the refresh below fails and
+    // `lists` stays stale (issue #20, finding 1).
+    await refreshAfterMutation()
+    onCreated({ ...created, listItems: [] })
   }
 
   return (
@@ -67,6 +68,7 @@ export function CreateListOverlay({
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Sunday morning rewatches"
+          maxLength={LIST_NAME_MAX_LENGTH}
         />
         <TextareaField
           id="list-description"
@@ -74,6 +76,7 @@ export function CreateListOverlay({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder="What ties these films together?"
+          maxLength={LIST_DESCRIPTION_MAX_LENGTH}
         />
         {error && <ErrorBanner>{error}</ErrorBanner>}
         <button

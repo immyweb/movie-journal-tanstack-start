@@ -1,0 +1,2 @@
+ALTER TABLE "list" ADD CONSTRAINT "list_name_length" CHECK (char_length("list"."name") <= 100);--> statement-breakpoint
+ALTER TABLE "list" ADD CONSTRAINT "list_description_length" CHECK (char_length("list"."description") <= 500);

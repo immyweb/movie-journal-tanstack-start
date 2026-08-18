@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 
 import { getJournalEntries } from '#/lib/journal/entries'
-import { getLists } from '#/lib/lists/lists'
+import { getLists, type ListWithItems } from '#/lib/lists/lists'
 import type { MovieSearchResult } from '#/lib/tmdb/search'
 import { EmptyStateCard } from '#/components/empty-state-card'
 import { ListCard } from '#/components/lists/list-card'
@@ -47,8 +47,29 @@ function ListsPage() {
   const { lists, journalMovies } = Route.useLoaderData()
   const [openId, setOpenId] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  // Holds a just-created list until the post-create router.invalidate()
+  // refetch lands it in `lists` — if that refetch fails, this is the only
+  // copy of it, so the overlay still opens instead of silently failing to
+  // find the list in stale loader data (issue #20, finding 1). Deliberately
+  // scoped to just the one list that was created client-side (matched by
+  // id below), not a blanket fallback for whatever's currently open —
+  // falling back for *any* open list would also mask a list genuinely
+  // disappearing (e.g. deleted from another tab) by continuing to show its
+  // last-known stale copy indefinitely instead of closing.
+  const [pendingList, setPendingList] = useState<ListWithItems | null>(null)
+  // Lists whose deletion has been confirmed server-side, hidden from the
+  // grid immediately rather than waiting on router.invalidate() — that
+  // refetch can fail (issue #20, finding 2), and a just-deleted list
+  // reappearing because of a stale refetch would be worse than a missed
+  // "refresh to see the latest" message.
+  const [deletedListIds, setDeletedListIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  )
 
-  const open = lists.find((list) => list.id === openId) ?? null
+  const visibleLists = lists.filter((list) => !deletedListIds.has(list.id))
+  const open =
+    visibleLists.find((list) => list.id === openId) ??
+    (pendingList?.id === openId ? pendingList : null)
 
   return (
     <section className="px-6 pt-10 pb-16">
@@ -59,7 +80,7 @@ function ListsPage() {
           </h1>
         </div>
 
-        {lists.length === 0 ? (
+        {visibleLists.length === 0 ? (
           <EmptyStateCard
             icon={Plus}
             heading={
@@ -79,7 +100,7 @@ function ListsPage() {
           </EmptyStateCard>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4">
-            {lists.map((list) => (
+            {visibleLists.map((list) => (
               <ListCard
                 key={list.id}
                 list={list}
@@ -102,9 +123,10 @@ function ListsPage() {
       {isCreating && (
         <CreateListOverlay
           onCancel={() => setIsCreating(false)}
-          onCreated={(listId) => {
+          onCreated={(created) => {
             setIsCreating(false)
-            setOpenId(listId)
+            setPendingList(created)
+            setOpenId(created.id)
           }}
         />
       )}
@@ -113,8 +135,15 @@ function ListsPage() {
         <ManageListOverlay
           list={open}
           journalMovies={journalMovies}
-          onClose={() => setOpenId(null)}
-          onDeleted={() => setOpenId(null)}
+          onClose={() => {
+            setOpenId(null)
+            setPendingList(null)
+          }}
+          onDeleted={() => {
+            setDeletedListIds((prev) => new Set(prev).add(open.id))
+            setOpenId(null)
+            setPendingList(null)
+          }}
         />
       )}
     </section>

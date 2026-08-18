@@ -1,5 +1,6 @@
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import {
+  check,
   index,
   pgTable,
   primaryKey,
@@ -9,9 +10,13 @@ import {
 
 import { user } from './auth'
 import { movie } from './movie'
+import {
+  LIST_DESCRIPTION_MAX_LENGTH,
+  LIST_NAME_MAX_LENGTH,
+} from '../../validation/list'
 
-// A user's named, single-owner collection of Movie references, shared via a
-// public link built from shareToken (see CONTEXT.md > List, ADR 0013).
+// A user's named, single-owner List of Movie references, shared via a
+// Share link built from shareToken (see CONTEXT.md > List, ADR 0013).
 // Distinct from JournalEntry: carries no per-user watch data.
 export const list = pgTable(
   'list',
@@ -37,6 +42,18 @@ export const list = pgTable(
   (table) => [
     index('list_userId_idx').on(table.userId),
     index('list_shareToken_idx').on(table.shareToken),
+    // Backstops createListSchema's length caps at the DB layer (issue #20,
+    // finding 4) — name is rendered unbounded as an <h1> on the public
+    // share page, so nothing should be able to store a value past what
+    // that page can lay out.
+    check(
+      'list_name_length',
+      sql`char_length(${table.name}) <= ${sql.raw(String(LIST_NAME_MAX_LENGTH))}`,
+    ),
+    check(
+      'list_description_length',
+      sql`char_length(${table.description}) <= ${sql.raw(String(LIST_DESCRIPTION_MAX_LENGTH))}`,
+    ),
   ],
 )
 

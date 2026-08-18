@@ -101,6 +101,31 @@ describe('Your lists', () => {
     ).toBeInTheDocument()
   })
 
+  it('opens the newly created list for management even if the post-create refresh fails (issue #20, finding 1)', async () => {
+    mockLoaderData({ lists: [] })
+    const created = {
+      ...fakeList,
+      id: 'list_new',
+      name: 'Watch with Sam',
+      description: null,
+      listItems: [],
+    }
+    vi.mocked(createList).mockResolvedValue(created as never)
+    const user = userEvent.setup()
+    const { router } = await renderAuthedRoute('/lists')
+    vi.spyOn(router, 'invalidate').mockRejectedValueOnce(
+      new Error('network blip'),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Create a list' }))
+    await user.type(screen.getByLabelText('Name'), 'Watch with Sam')
+    await user.click(screen.getByRole('button', { name: 'Create list' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Watch with Sam' }),
+    ).toBeInTheDocument()
+  })
+
   it('shows a validation error when creating a list without a name', async () => {
     mockLoaderData({ lists: [] })
     const user = userEvent.setup()
@@ -127,6 +152,28 @@ describe('Your lists', () => {
       within(dialog).getByText('Films worth a rewatch.'),
     ).toBeInTheDocument()
     expect(within(dialog).getByText(fakeMovie.title)).toBeInTheDocument()
+  })
+
+  it('closes the overlay if the open list disappears from a refresh this tab did not cause (e.g. deleted elsewhere)', async () => {
+    mockLoaderData()
+    vi.mocked(removeListItem).mockResolvedValue(undefined as never)
+    const user = userEvent.setup()
+    await renderAuthedRoute('/lists')
+    await openList(user)
+
+    // Simulate the list having been deleted from another tab/session — the
+    // next successful refresh no longer includes it.
+    vi.mocked(getLists).mockResolvedValue([])
+
+    await user.click(
+      screen.getByRole('button', { name: `Remove ${fakeMovie.title}` }),
+    )
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: 'Best of the decade' }),
+      ).not.toBeInTheDocument(),
+    )
   })
 
   it('adds a film via TMDB search', async () => {
@@ -216,6 +263,25 @@ describe('Your lists', () => {
     )
   })
 
+  it('shows an error when a mutation succeeds but the on-screen refresh fails (issue #20, finding 2)', async () => {
+    mockLoaderData()
+    vi.mocked(removeListItem).mockResolvedValue(undefined as never)
+    const user = userEvent.setup()
+    const { router } = await renderAuthedRoute('/lists')
+    await openList(user)
+    vi.spyOn(router, 'invalidate').mockRejectedValueOnce(
+      new Error('network blip'),
+    )
+
+    await user.click(
+      screen.getByRole('button', { name: `Remove ${fakeMovie.title}` }),
+    )
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Saved, but the list on screen may be out of date. Refresh to see the latest.',
+    )
+  })
+
   it('deletes a list behind a confirm step', async () => {
     mockLoaderData()
     vi.mocked(deleteList).mockResolvedValue(fakeList as never)
@@ -238,6 +304,29 @@ describe('Your lists', () => {
         screen.queryByRole('heading', { name: 'Best of the decade' }),
       ).not.toBeInTheDocument(),
     )
+  })
+
+  it('hides a deleted list from the grid even if the post-delete refresh fails', async () => {
+    mockLoaderData()
+    vi.mocked(deleteList).mockResolvedValue(fakeList as never)
+    const user = userEvent.setup()
+    const { router } = await renderAuthedRoute('/lists')
+    await openList(user)
+    vi.spyOn(router, 'invalidate').mockRejectedValueOnce(
+      new Error('network blip'),
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Delete list' }))
+    await user.click(screen.getAllByRole('button', { name: 'Delete list' })[1])
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', { name: 'Best of the decade' }),
+      ).not.toBeInTheDocument(),
+    )
+    expect(
+      screen.getByRole('heading', { name: 'No lists yet' }),
+    ).toBeInTheDocument()
   })
 
   it('shows an error banner when a mutation is rejected as not owned', async () => {

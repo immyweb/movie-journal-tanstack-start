@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { useDebouncedValue } from '#/lib/use-debounced-value'
 import { searchMovies, type MovieSearchResult } from '#/lib/tmdb/search'
@@ -50,12 +50,18 @@ export function useMoviePicker(journalMovies: Array<MovieSearchResult>) {
     }
   }, [source, debouncedQuery])
 
-  const journalResults =
-    source === 'journal'
-      ? journalMovies.filter((movie) =>
-          movie.title.toLowerCase().includes(query.trim().toLowerCase()),
-        )
-      : []
+  // journalMovies is a fully-loaded in-memory array — unlike the TMDB path,
+  // there's no external call to protect from being hammered, so this stays
+  // on the live `query` rather than the debounced one: memoized (issue
+  // #20, finding 10) so it doesn't re-filter on every unrelated render, but
+  // not debounced, since that would only add input lag with no benefit.
+  const journalResults = useMemo(() => {
+    if (source !== 'journal') return []
+    const trimmed = query.trim().toLowerCase()
+    return journalMovies.filter((movie) =>
+      movie.title.toLowerCase().includes(trimmed),
+    )
+  }, [source, query, journalMovies])
 
   return {
     source,

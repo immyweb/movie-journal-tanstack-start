@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useRouter } from '@tanstack/react-router'
+import { useMemo, useState } from 'react'
 import { Film, Plus, Trash2, X } from 'lucide-react'
 
 import { formatReleaseYear } from '#/lib/format-release-year'
@@ -9,6 +8,7 @@ import { addListItem } from '#/lib/lists/add-list-item'
 import { removeListItem } from '#/lib/lists/remove-list-item'
 import { deleteList } from '#/lib/lists/delete-list'
 import { useMoviePicker } from '#/lib/lists/use-movie-picker'
+import { useRefreshAfterMutation } from '#/lib/lists/use-refresh-after-mutation'
 import type { MovieSearchResult } from '#/lib/tmdb/search'
 import { AuthField } from '#/components/auth-field'
 import { ErrorBanner } from '#/components/error-banner'
@@ -29,24 +29,28 @@ export function ManageListOverlay({
   onClose: () => void
   onDeleted: () => void
 }) {
-  const router = useRouter()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const picker = useMoviePicker(journalMovies)
-  const alreadyAdded = new Set(list.listItems.map((item) => item.movieId))
+  const alreadyAdded = useMemo(
+    () => new Set(list.listItems.map((item) => item.movieId)),
+    [list.listItems],
+  )
 
-  // Invalidation runs after a mutation has already succeeded, so a failure
-  // here (e.g. a transient network blip on the refetch) must not surface as
-  // "the mutation failed" — the write went through; only the on-screen list
-  // is stale until the next successful load.
-  const refreshAfterMutation = async () => {
-    try {
-      await router.invalidate()
-    } catch {
-      // Stale until the next interaction re-triggers a load.
-    }
-  }
+  // A mutation's refresh failing must not be worded as "the mutation
+  // failed" — the write went through. But it does leave the on-screen list
+  // and `alreadyAdded` stale, so that's surfaced as its own message rather
+  // than swallowed silently (issue #20, finding 2) — except on the delete
+  // path, where this message can never actually be seen: onDeleted below
+  // unmounts this overlay right after, so staleness there is instead
+  // prevented outright by the parent hiding the deleted list from its grid
+  // regardless of whether this refresh succeeds.
+  const refreshAfterMutation = useRefreshAfterMutation(() =>
+    setMutationError(
+      'Saved, but the list on screen may be out of date. Refresh to see the latest.',
+    ),
+  )
 
   const handleAdd = async (movie: MovieSearchResult) => {
     setMutationError(null)
