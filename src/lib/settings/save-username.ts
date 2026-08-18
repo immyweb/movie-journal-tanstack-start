@@ -35,9 +35,15 @@ export const saveUsername = createServerFn({ method: 'POST' })
     const headers = getRequestHeaders()
 
     try {
+      // displayUsername mirrors username here: the Settings form only
+      // collects one casing-insensitive value, so there's no separately-
+      // cased string to preserve. It still has to be sent explicitly —
+      // Better Auth's /update-user path (unlike /sign-up/email) doesn't
+      // auto-copy username into displayUsername, so omitting it would
+      // leave the column permanently null.
       await auth.api.updateUser({
         headers,
-        body: { username: data.username },
+        body: { username: data.username, displayUsername: data.username },
       })
     } catch (error) {
       if (
