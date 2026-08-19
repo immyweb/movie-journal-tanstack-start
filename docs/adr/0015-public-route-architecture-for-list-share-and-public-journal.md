@@ -1,3 +1,7 @@
+---
+status: amended by ADR-0016 (public Journal path changed to `/journal/u/{username}` — `_public.journal.u.$username.tsx` — to avoid a route collision with the authed entry-detail route)
+---
+
 # Public route architecture for List share & public Journal pages
 
 ADR 0004 splits routes into an indexed-SSR homepage and a CSR-shell `_authed` app. List share pages and public Journal pages fit neither: they need SSR (for shareable links to work without JS) but must be `noindex` and reachable while signed out, with no owner-vs-visitor distinction — this ADR adds that as a third rendering category alongside 0004's two, which stay as they are. A new pathless layout route, `src/routes/_public.tsx`, sits as a sibling to `_authed.tsx` (not nested under it, since nesting would inherit its `beforeLoad` auth redirect). It carries no auth check at all — the public pages are strictly anonymous, rendering identically for an owner viewing their own link and any other visitor — and sets `{ name: 'robots', content: 'noindex' }` once in a shared `head()`, inherited by every nested route. SSR stays at the framework default (`true`); no `ssr` option is set explicitly, mirroring how ADR 0004 also relies on the default rather than introducing a new SSR mechanism.
