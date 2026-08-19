@@ -263,15 +263,38 @@ describe('Your lists', () => {
     )
   })
 
+  it('disables the remove button while a list-item mutation is in flight, so two concurrent refreshes cannot race (issue #21, finding 7)', async () => {
+    mockLoaderData()
+    let resolveRemove: (() => void) | undefined
+    vi.mocked(removeListItem).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveRemove = () => resolve(undefined as never)
+        }),
+    )
+    const user = userEvent.setup()
+    await renderAuthedRoute('/lists')
+    await openList(user)
+    const removeButton = screen.getByRole('button', {
+      name: `Remove ${fakeMovie.title}`,
+    })
+
+    await user.click(removeButton)
+    expect(removeButton).toBeDisabled()
+
+    resolveRemove?.()
+    await waitFor(() => expect(removeButton).not.toBeDisabled())
+  })
+
   it('shows an error when a mutation succeeds but the on-screen refresh fails (issue #20, finding 2)', async () => {
     mockLoaderData()
     vi.mocked(removeListItem).mockResolvedValue(undefined as never)
     const user = userEvent.setup()
-    const { router } = await renderAuthedRoute('/lists')
+    await renderAuthedRoute('/lists')
     await openList(user)
-    vi.spyOn(router, 'invalidate').mockRejectedValueOnce(
-      new Error('network blip'),
-    )
+    // The scoped post-mutation getLists() refetch (issue #21, finding 7),
+    // not the loader's own initial call, is what fails here.
+    vi.mocked(getLists).mockRejectedValueOnce(new Error('network blip'))
 
     await user.click(
       screen.getByRole('button', { name: `Remove ${fakeMovie.title}` }),
@@ -306,15 +329,14 @@ describe('Your lists', () => {
     )
   })
 
-  it('hides a deleted list from the grid even if the post-delete refresh fails', async () => {
+  it('hides a deleted list from the grid without any refresh call, since the delete is already confirmed server-side (issue #21, finding 7)', async () => {
     mockLoaderData()
     vi.mocked(deleteList).mockResolvedValue(fakeList as never)
     const user = userEvent.setup()
     const { router } = await renderAuthedRoute('/lists')
     await openList(user)
-    vi.spyOn(router, 'invalidate').mockRejectedValueOnce(
-      new Error('network blip'),
-    )
+    const invalidateSpy = vi.spyOn(router, 'invalidate')
+    const getListsCallsBeforeDelete = vi.mocked(getLists).mock.calls.length
 
     await user.click(screen.getByRole('button', { name: 'Delete list' }))
     await user.click(screen.getAllByRole('button', { name: 'Delete list' })[1])
@@ -327,6 +349,10 @@ describe('Your lists', () => {
     expect(
       screen.getByRole('heading', { name: 'No lists yet' }),
     ).toBeInTheDocument()
+    expect(invalidateSpy).not.toHaveBeenCalled()
+    expect(vi.mocked(getLists).mock.calls.length).toBe(
+      getListsCallsBeforeDelete,
+    )
   })
 
   it('shows an error banner when a mutation is rejected as not owned', async () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 
@@ -65,8 +65,29 @@ function ListsPage() {
   const [deletedListIds, setDeletedListIds] = useState<ReadonlySet<string>>(
     new Set(),
   )
+  // Bridges a List's on-screen state between an add/remove mutation inside
+  // ManageListOverlay and the next real loader refresh — those mutations no
+  // longer call router.invalidate() themselves (issue #21, finding 7), so
+  // without this the grid/overlay would keep showing the pre-mutation
+  // `lists` entry until an unrelated navigation reran the loader. Reset
+  // whenever `lists` itself changes (a genuine loader refresh, e.g. after
+  // creating a list) so a stale override can never keep shadowing data
+  // that's now authoritative again — done during render (React's documented
+  // pattern for resetting state on a prop change), not a useEffect, so the
+  // reset lands in the same render pass instead of painting stale overrides
+  // for a frame first.
+  const [listOverrides, setListOverrides] = useState<
+    Record<string, ListWithItems>
+  >({})
+  const previousLists = useRef(lists)
+  if (previousLists.current !== lists) {
+    previousLists.current = lists
+    setListOverrides({})
+  }
 
-  const visibleLists = lists.filter((list) => !deletedListIds.has(list.id))
+  const visibleLists = lists
+    .filter((list) => !deletedListIds.has(list.id))
+    .map((list) => listOverrides[list.id] ?? list)
   const open =
     visibleLists.find((list) => list.id === openId) ??
     (pendingList?.id === openId ? pendingList : null)
@@ -141,8 +162,17 @@ function ListsPage() {
           }}
           onDeleted={() => {
             setDeletedListIds((prev) => new Set(prev).add(open.id))
+            setListOverrides((prev) => {
+              if (!(open.id in prev)) return prev
+              const { [open.id]: _removed, ...rest } = prev
+              return rest
+            })
             setOpenId(null)
             setPendingList(null)
+          }}
+          onListUpdated={(updated) => {
+            setListOverrides((prev) => ({ ...prev, [updated.id]: updated }))
+            if (pendingList?.id === updated.id) setPendingList(updated)
           }}
         />
       )}

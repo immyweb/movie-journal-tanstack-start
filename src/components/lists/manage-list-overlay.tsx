@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Film, Plus, Trash2, X } from 'lucide-react'
+import { Plus, Trash2, X } from 'lucide-react'
 
 import { formatReleaseYear } from '#/lib/format-release-year'
 import { cn } from '#/lib/utils'
@@ -8,11 +8,12 @@ import { addListItem } from '#/lib/lists/add-list-item'
 import { removeListItem } from '#/lib/lists/remove-list-item'
 import { deleteList } from '#/lib/lists/delete-list'
 import { useMoviePicker } from '#/lib/lists/use-movie-picker'
-import { useRefreshAfterMutation } from '#/lib/lists/use-refresh-after-mutation'
+import { useRefreshList } from '#/lib/lists/use-refresh-list'
 import type { MovieSearchResult } from '#/lib/tmdb/search'
 import { AuthField } from '#/components/auth-field'
 import { ErrorBanner } from '#/components/error-banner'
 import { OverlayShell } from '#/components/lists/overlay-shell'
+import { PosterThumbnail } from '#/components/lists/poster-thumbnail'
 
 // The full-screen management view for one List: an underline-tab, one-
 // source-at-a-time picker for adding films (TMDB search or the user's own
@@ -23,14 +24,22 @@ export function ManageListOverlay({
   journalMovies,
   onClose,
   onDeleted,
+  onListUpdated,
 }: {
   list: ListWithItems
   journalMovies: Array<MovieSearchResult>
   onClose: () => void
   onDeleted: () => void
+  onListUpdated: (list: ListWithItems) => void
 }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  // Blocks starting a second add/remove while one is still in flight — its
+  // getLists() refresh (issue #21, finding 7) can resolve out of order with
+  // a second one's, letting an older response's onListUpdated overwrite a
+  // newer one's listOverrides entry. One mutation at a time sidesteps that
+  // rather than reconciling out-of-order responses.
+  const [isMutatingItem, setIsMutatingItem] = useState(false)
   const [mutationError, setMutationError] = useState<string | null>(null)
   const picker = useMoviePicker(journalMovies)
   const alreadyAdded = useMemo(
@@ -41,19 +50,29 @@ export function ManageListOverlay({
   // A mutation's refresh failing must not be worded as "the mutation
   // failed" — the write went through. But it does leave the on-screen list
   // and `alreadyAdded` stale, so that's surfaced as its own message rather
-  // than swallowed silently (issue #20, finding 2) — except on the delete
-  // path, where this message can never actually be seen: onDeleted below
-  // unmounts this overlay right after, so staleness there is instead
-  // prevented outright by the parent hiding the deleted list from its grid
-  // regardless of whether this refresh succeeds.
-  const refreshAfterMutation = useRefreshAfterMutation(() =>
-    setMutationError(
-      'Saved, but the list on screen may be out of date. Refresh to see the latest.',
-    ),
-  )
+  // than swallowed silently (issue #20, finding 2). Scoped to re-fetching
+  // just this List via getLists(), not a full router.invalidate() of the
+  // /lists route — that would also rerun getJournalEntries, even though
+  // add/remove never touch journal data (issue #21, finding 7).
+  const refreshList = useRefreshList(list.id)
+
+  const applyRefresh = (result: Awaited<ReturnType<typeof refreshList>>) => {
+    if (result.status === 'fresh') {
+      onListUpdated(result.list)
+    } else if (result.status === 'gone') {
+      // The refetch succeeded but this List is no longer in it — treat the
+      // same as this tab having deleted it itself.
+      onDeleted()
+    } else {
+      setMutationError(
+        'Saved, but the list on screen may be out of date. Refresh to see the latest.',
+      )
+    }
+  }
 
   const handleAdd = async (movie: MovieSearchResult) => {
     setMutationError(null)
+    setIsMutatingItem(true)
 
     try {
       await addListItem({ data: { listId: list.id, tmdbId: movie.tmdbId } })
@@ -63,14 +82,17 @@ export function ManageListOverlay({
           ? error.message
           : 'Something went wrong adding this film. Please try again.',
       )
+      setIsMutatingItem(false)
       return
     }
 
-    await refreshAfterMutation()
+    applyRefresh(await refreshList())
+    setIsMutatingItem(false)
   }
 
   const handleRemove = async (tmdbId: string) => {
     setMutationError(null)
+    setIsMutatingItem(true)
 
     try {
       await removeListItem({ data: { listId: list.id, tmdbId } })
@@ -80,10 +102,12 @@ export function ManageListOverlay({
           ? error.message
           : 'Something went wrong removing this film. Please try again.',
       )
+      setIsMutatingItem(false)
       return
     }
 
-    await refreshAfterMutation()
+    applyRefresh(await refreshList())
+    setIsMutatingItem(false)
   }
 
   const handleDelete = async () => {
@@ -102,7 +126,9 @@ export function ManageListOverlay({
       return
     }
 
-    await refreshAfterMutation()
+    // No refresh call here — onDeleted unmounts this overlay immediately
+    // and the parent hides the deleted list from its grid regardless, so
+    // there's no on-screen state left for a refresh to keep in sync.
     onDeleted()
   }
 
@@ -215,21 +241,16 @@ export function ManageListOverlay({
                 <li key={movie.tmdbId}>
                   <button
                     type="button"
-                    disabled={added}
+                    disabled={added || isMutatingItem}
                     onClick={() => handleAdd(movie)}
                     className="hover:bg-lm-surface focus-visible:outline-lm-amber flex w-full cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-left outline-none focus-visible:outline-2 disabled:cursor-default disabled:opacity-40"
                   >
-                    <span className="bg-lm-surface flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md">
-                      {movie.posterUrl ? (
-                        <img
-                          src={movie.posterUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <Film aria-hidden="true" size={20} />
-                      )}
-                    </span>
+                    <PosterThumbnail
+                      posterUrl={movie.posterUrl}
+                      alt=""
+                      iconSize={20}
+                      className="bg-lm-surface size-14 shrink-0 rounded-md"
+                    />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[16px] font-bold">
                         {movie.title}
@@ -260,24 +281,18 @@ export function ManageListOverlay({
                 key={item.movieId}
                 className="border-lm-line bg-lm-surface group relative overflow-hidden rounded-lg border"
               >
-                <div className="bg-lm-surface aspect-[2/3] w-full">
-                  {item.movie.posterImg ? (
-                    <img
-                      src={item.movie.posterImg}
-                      alt=""
-                      className="block h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="text-lm-mist flex h-full w-full items-center justify-center">
-                      <Film aria-hidden="true" size={20} />
-                    </div>
-                  )}
-                </div>
+                <PosterThumbnail
+                  posterUrl={item.movie.posterImg}
+                  alt=""
+                  iconSize={20}
+                  className="bg-lm-surface aspect-[2/3] w-full"
+                />
                 <button
                   type="button"
+                  disabled={isMutatingItem}
                   onClick={() => handleRemove(item.movieId)}
                   aria-label={`Remove ${item.movie.title}`}
-                  className="bg-lm-ink/85 hover:bg-lm-red focus-visible:outline-lm-amber absolute top-1 right-1 flex size-5 cursor-pointer items-center justify-center rounded-full text-white outline-none focus-visible:outline-2"
+                  className="bg-lm-ink/85 hover:bg-lm-red focus-visible:outline-lm-amber absolute top-1 right-1 flex size-5 cursor-pointer items-center justify-center rounded-full text-white outline-none focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <X aria-hidden="true" size={11} />
                 </button>
