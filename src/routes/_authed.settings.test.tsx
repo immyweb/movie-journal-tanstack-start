@@ -123,7 +123,7 @@ describe('Settings', () => {
         data: { journalIsPublic: true },
       }),
     )
-    expect(await screen.findByText('/journal/riley')).toBeInTheDocument()
+    expect(await screen.findByText('/journal/u/riley')).toBeInTheDocument()
 
     await user.click(toggle)
 
@@ -133,7 +133,7 @@ describe('Settings', () => {
       }),
     )
     await waitFor(() =>
-      expect(screen.queryByText('/journal/riley')).not.toBeInTheDocument(),
+      expect(screen.queryByText('/journal/u/riley')).not.toBeInTheDocument(),
     )
   })
 

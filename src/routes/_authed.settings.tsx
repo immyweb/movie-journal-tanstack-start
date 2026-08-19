@@ -180,7 +180,7 @@ function SettingsPage() {
                   className="text-lm-amber shrink-0"
                 />
                 <code className="text-lm-paper truncate text-sm">
-                  /journal/{username}
+                  /journal/u/{username}
                 </code>
               </div>
             )}
